@@ -1,10 +1,4 @@
-import { fetchDigimon } from './data.js';
-import { gainXP } from './digimon.js';
-import { createRing } from './equipment.js';
-import { saveProgress, XP_CAPS } from './storage.js';
-import { updateUI, logMessage, showMenu } from './ui.js';
-
-export async function createOpponent(isBoss = false) {
+function createOpponent(isBoss) {
     console.log("Creating opponent for stage:", state.selectedEnemyStage, "isBoss:", isBoss);
     const activeDigimon = state.digimonSlots[state.activeDigimonIndex];
     if (!activeDigimon) {
@@ -27,7 +21,7 @@ export async function createOpponent(isBoss = false) {
     } else {
         const rookieNames = Object.keys(digimonData).filter(name => digimonData[name]?.stage === "Rookie");
         for (const name of rookieNames) {
-            const data = await fetchDigimon(name);
+            const data = digimonData[name];
             if (!data) continue;
             if (stage === "Rookie" && data.stage === "Rookie") {
                 possibleDigimon.push({ name, baseStats: data.baseStats, sprite: data.sprite, stage: data.stage });
@@ -38,10 +32,12 @@ export async function createOpponent(isBoss = false) {
                         (stage === "Ultimate" && evo.level === 200) ||
                         (stage === "Mega" && evo.level === 1000)
                     ) {
-                        const evoData = await fetchDigimon(evo.name);
-                        if (evoData) {
-                            possibleDigimon.push({ name: evo.name, baseStats: evoData.baseStats, sprite: evo.sprite, stage: stage });
-                        }
+                        const evoData = digimonData[evo.name] || {
+                            baseStats: BASE_STATS[stage] || { hp: 80, attack: 20 },
+                            sprite: "https://digimon-api.com/images/digimon/" + encodeURIComponent(evo.name) + ".png",
+                            stage
+                        };
+                        possibleDigimon.push({ name: evo.name, baseStats: evoData.baseStats, sprite: evo.sprite, stage });
                     }
                 }
             }
@@ -88,7 +84,7 @@ export async function createOpponent(isBoss = false) {
     };
 }
 
-export function spawnNewTarget(targetId) {
+function spawnNewTarget(targetId) {
     const field = document.getElementById("precision-field");
     const target = document.getElementById(targetId);
     if (!field || !target) {
@@ -110,7 +106,7 @@ export function spawnNewTarget(targetId) {
     target.style.top = `${position.y}px`;
 }
 
-export function performAttack(isAuto = false, clickX = null, clickY = null) {
+function performAttack(isAuto, clickX, clickY) {
     const player = state.digimonSlots[state.activeDigimonIndex];
     if (!player || !state.battleActive || player.hp <= 0 || !state.opponent || state.opponent.hp <= 0) {
         logMessage("Cannot attack: invalid battle state.");
@@ -270,7 +266,7 @@ export function performAttack(isAuto = false, clickX = null, clickY = null) {
         }
         saveProgress(true);
         if (!state.opponent.name.endsWith("(Boss)")) {
-            state.opponent = await createOpponent(false);
+            state.opponent = createOpponent(false);
             logMessage(`New opponent: ${state.opponent.name}!`);
             if (state.combatMode === "precision") {
                 state.targetPositions = prevTargetPositions;
@@ -310,7 +306,7 @@ export function performAttack(isAuto = false, clickX = null, clickY = null) {
     updateUI();
 }
 
-export function playerAttack(event) {
+function playerAttack(event) {
     if (state.combatMode === "precision" && event) {
         performAttack(false, event.clientX, event.clientY);
     } else if (state.combatMode === "charging") {
@@ -318,7 +314,7 @@ export function playerAttack(event) {
     }
 }
 
-export function opponentAttack() {
+function opponentAttack() {
     if (state.enemyStunned) {
         logMessage(`${state.opponent.name} is stunned and cannot attack!`);
         state.enemyStunned = false;
@@ -362,7 +358,7 @@ export function opponentAttack() {
     updateUI();
 }
 
-export function animateMarker(timestamp) {
+function animateMarker(timestamp) {
     if (!state.battleActive) return;
 
     const timingBar = document.getElementById("timing-bar");
@@ -407,7 +403,7 @@ export function animateMarker(timestamp) {
     }
 }
 
-export function attack(event) {
+function attack(event) {
     if (state.battleActive && !state.isAttackDisabled && state.combatMode === "precision" && event) {
         playerAttack(event);
     } else if (state.battleActive && !state.isAttackDisabled && state.combatMode === "charging") {
@@ -417,14 +413,14 @@ export function attack(event) {
     }
 }
 
-export async function startBattle(isBoss) {
+function startBattle(isBoss) {
     console.log("Starting battle, isBoss:", isBoss);
     if (state.activeDigimonIndex === null) {
         logMessage("No active Digimon selected! Please select a Digimon first.");
         return;
     }
     state.selectedEnemyStage = document.getElementById("enemy-stage-select").value;
-    state.opponent = await createOpponent(isBoss);
+    state.opponent = createOpponent(isBoss);
     if (!state.opponent) {
         logMessage("Failed to create opponent for this stage!");
         return;
@@ -483,7 +479,7 @@ export async function startBattle(isBoss) {
     updateUI();
 }
 
-export function endBattle() {
+function endBattle() {
     state.battleActive = false;
     if (state.animationFrame) {
         cancelAnimationFrame(state.animationFrame);
@@ -505,7 +501,7 @@ export function endBattle() {
     showMenu();
 }
 
-export function handleKeyPress(event) {
+function handleKeyPress(event) {
     if (state.combatMode === "charging" && event.code === "KeyA" && state.battleActive) {
         playerAttack();
     } else if (event.code === "Space") {
@@ -513,7 +509,7 @@ export function handleKeyPress(event) {
     }
 }
 
-export function toggleCombatMode() {
+function toggleCombatMode() {
     const combatModeSelect = document.getElementById("combat-mode-select");
     if (combatModeSelect) {
         state.combatMode = combatModeSelect.value;
@@ -522,5 +518,3 @@ export function toggleCombatMode() {
         updateUI();
     }
 }
-
-window.startBattle = startBattle;

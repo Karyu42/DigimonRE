@@ -44,12 +44,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digimon RPG</title>
     <link rel="stylesheet" href="styles.css">
-    <script type="module" src="data.js"></script>
-    <script type="module" src="storage.js"></script>
-    <script type="module" src="digimon.js"></script>
-    <script type="module" src="equipment.js"></script>
-    <script type="module" src="battle.js"></script>
-    <script type="module" src="ui.js"></script>
+    <script src="data.js"></script>
+    <script src="storage.js"></script>
+    <script src="digimon.js"></script>
+    <script src="equipment.js"></script>
+    <script src="battle.js"></script>
+    <script src="ui.js"></script>
+    <script>
+        // Expose startBattle globally for onclick
+        window.startBattle = startBattle;
+    </script>
 </head>
 <body>
     <div id="game-container">

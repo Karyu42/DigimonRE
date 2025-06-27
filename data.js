@@ -1,4 +1,4 @@
-export const BASE_STATS = {
+const BASE_STATS = {
     Rookie: { hp: 80, attack: 20 },
     Champion: { hp: 120, attack: 30 },
     Ultimate: { hp: 160, attack: 40 },
@@ -6,7 +6,7 @@ export const BASE_STATS = {
     Ultra: { hp: 240, attack: 60 }
 };
 
-export let digimonData = {
+let digimonData = {
     Agumon: {
         sprite: "https://digimon-api.com/images/digimon/Agumon.png",
         evolutions: [
@@ -53,57 +53,11 @@ export let digimonData = {
     }
 };
 
-export async function fetchDigimon(name) {
-    if (digimonData[name]) return digimonData[name]; // Return cached data
-
-    try {
-        const proxyUrl = 'https://api.allorigins.win/get?url=';
-        const response = await fetch(proxyUrl + encodeURIComponent(`https://digimon-api.com/api/v1/digimon/${encodeURIComponent(name)}`));
-        const proxyData = await response.json();
-        const detailData = JSON.parse(proxyData.contents);
-
-        const validStages = ["Rookie", "Champion", "Ultimate", "Mega", "Ultra"];
-        const stageOrder = { Rookie: 1, Champion: 2, Ultimate: 3, Mega: 4, Ultra: 5 };
-        const stage = normalizeStage(detailData.levels?.[0]?.level);
-
-        if (!validStages.includes(stage)) {
-            console.warn(`Invalid stage for '${name}': ${detailData.levels?.[0]?.level}`);
-            return null;
-        }
-
-        const evolutions = detailData.nextEvolutions
-            .filter(evo => {
-                const evoStage = normalizeStage(evo.level);
-                return (
-                    validStages.includes(evoStage) &&
-                    stageOrder[evoStage] > stageOrder[stage] &&
-                    (!evo.condition || !evo.condition.includes("with "))
-                );
-            })
-            .map(evo => ({
-                name: evo.digimon,
-                level: getEvolutionLevel(stage),
-                sprite: "https://digimon-api.com/images/digimon/" + encodeURIComponent(evo.digimon) + ".png"
-            }));
-
-        const digimon = {
-            sprite: detailData.images[0]?.href || "https://digimon-api.com/images/digimon/Agumon.png",
-            evolutions,
-            baseStats: { ...BASE_STATS[stage] },
-            stage,
-            nextEvolutions: detailData.nextEvolutions
-        };
-
-        digimonData[name] = digimon;
-        console.log(`Fetched and cached Digimon: ${name}`);
-        return digimon;
-    } catch (error) {
-        console.warn(`Failed to fetch Digimon '${name}':`, error);
-        return null;
-    }
+function fetchDigimon(name) {
+    return digimonData[name] || null;
 }
 
-export function normalizeStage(apiLevel) {
+function normalizeStage(apiLevel) {
     switch (apiLevel) {
         case "Rookie": return "Rookie";
         case "Champion": return "Champion";
@@ -114,7 +68,7 @@ export function normalizeStage(apiLevel) {
     }
 }
 
-export function getEvolutionLevel(currentStage) {
+function getEvolutionLevel(currentStage) {
     const levelMap = {
         Rookie: 50,
         Champion: 200,
@@ -124,7 +78,7 @@ export function getEvolutionLevel(currentStage) {
     return levelMap[currentStage] || 50;
 }
 
-export function getJogressShardCost(resultStage) {
+function getJogressShardCost(resultStage) {
     const shardCostMap = {
         Champion: 3,
         Ultimate: 5,
@@ -134,13 +88,13 @@ export function getJogressShardCost(resultStage) {
     return shardCostMap[resultStage] || 5;
 }
 
-export function parseConditionPartners(condition) {
+function parseConditionPartners(condition) {
     const partnerMatch = condition.match(/with (.+?)(?:, or | or |$)/);
     if (!partnerMatch) return [];
     return partnerMatch[1].split(/, | or /).map(name => name.trim()).filter(name => name && digimonData[name]);
 }
 
-export async function generateJogressPairs() {
+function generateJogressPairs() {
     const validStages = ["Rookie", "Champion", "Ultimate", "Mega", "Ultra"];
     const stageOrder = { Rookie: 1, Champion: 2, Ultimate: 3, Mega: 4, Ultra: 5 };
     const jogressPairs = [];
@@ -153,7 +107,7 @@ export async function generateJogressPairs() {
             if (evo.condition && evo.condition.includes("with ")) {
                 const partners = parseConditionPartners(evo.condition);
                 for (const partner of partners) {
-                    const partnerData = await fetchDigimon(partner);
+                    const partnerData = fetchDigimon(partner);
                     if (partnerData && stageOrder[partnerData.stage] >= stageOrder[digimon.stage]) {
                         jogressPairs.push({
                             digimon1: name,
@@ -187,7 +141,7 @@ export async function generateJogressPairs() {
     return uniquePairs;
 }
 
-export function getFallbackJogressPairs() {
+function getFallbackJogressPairs() {
     return [
         {
             digimon1: "Angemon",
@@ -258,7 +212,7 @@ export function getFallbackJogressPairs() {
     ];
 }
 
-export function isValidUrl(url) {
+function isValidUrl(url) {
     try {
         new URL(url);
         return true;

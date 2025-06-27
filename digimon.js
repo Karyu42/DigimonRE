@@ -1,6 +1,4 @@
-import { fetchDigimon, generateJogressPairs } from './data.js';
-
-export async function getStatMultiplier(stage) {
+function getStatMultiplier(stage) {
     return {
         Champion: 2,
         Ultimate: 3,
@@ -10,26 +8,12 @@ export async function getStatMultiplier(stage) {
     }[stage] || 1;
 }
 
-export async function hatchEgg(slotIndex) {
+function hatchEgg(slotIndex) {
     const rookieNames = Object.keys(digimonData).filter(name => digimonData[name]?.stage === "Rookie");
     const randomIndex = Math.floor(Math.random() * rookieNames.length);
     let name = rookieNames[randomIndex] || "Agumon";
 
-    // Try fetching a new random Rookie from the API
-    try {
-        const proxyUrl = 'https://api.allorigins.win/get?url=';
-        const response = await fetch(proxyUrl + encodeURIComponent('https://digimon-api.com/api/v1/digimon?pageSize=100'));
-        const proxyData = await response.json();
-        const data = JSON.parse(proxyData.contents);
-        const rookies = data.content.filter(d => d.levels?.[0]?.level === "Rookie");
-        if (rookies.length > 0) {
-            name = rookies[Math.floor(Math.random() * rookies.length)].name;
-        }
-    } catch (error) {
-        console.warn("Failed to fetch Rookie list, using cached name:", name);
-    }
-
-    const baseDigimon = await fetchDigimon(name) || {
+    const baseDigimon = digimonData[name] || {
         sprite: "https://digimon-api.com/images/digimon/Agumon.png",
         evolutions: [
             { name: "Greymon", level: 50, sprite: "https://digimon-api.com/images/digimon/Greymon.png" },
@@ -41,7 +25,7 @@ export async function hatchEgg(slotIndex) {
         nextEvolutions: []
     };
 
-    const multiplier = await getStatMultiplier(baseDigimon.stage);
+    const multiplier = getStatMultiplier(baseDigimon.stage);
     const newDigimon = {
         name,
         level: 1,
@@ -63,7 +47,7 @@ export async function hatchEgg(slotIndex) {
     logMessage(`A ${newDigimon.name} hatched in slot ${slotIndex + 1}!`);
 }
 
-export async function buySlot(slotIndex) {
+function buySlot(slotIndex) {
     const cost = 100 * Math.pow(5, slotIndex);
     if (state.digimonSlots[slotIndex]) {
         logMessage(`Slot ${slotIndex + 1} is already occupied!`);
@@ -74,12 +58,12 @@ export async function buySlot(slotIndex) {
         return;
     }
     state.bit -= cost;
-    await hatchEgg(slotIndex);
+    hatchEgg(slotIndex);
     updateUI();
     saveProgress();
 }
 
-export function buyAttackBoost() {
+function buyAttackBoost() {
     if (state.bit < 10000) {
         logMessage(`Not enough BIT (need 10000, have ${state.bit}) to buy an Attack Boost!`);
         return;
@@ -97,14 +81,14 @@ export function buyAttackBoost() {
     saveProgress();
 }
 
-export function buyAttackBoostBulk(amount) {
+function buyAttackBoostBulk(amount) {
     const costPerBoost = 10000;
     const digimon = state.digimonSlots[state.activeDigimonIndex];
     if (!digimon) {
         logMessage(`No active Digimon selected! Select a Digimon first.`);
         return;
     }
-    let maxAffordable = Math.floor(state.bit / costPerBoost);
+    let maxAffordable = math.floor(state.bit / costPerBoost);
     let numBoosts;
     if (amount === 'half') {
         numBoosts = Math.floor(maxAffordable / 2);
@@ -127,7 +111,7 @@ export function buyAttackBoostBulk(amount) {
     saveProgress();
 }
 
-export function buyHPBoost() {
+function buyHPBoost() {
     if (state.bit < 10000) {
         logMessage(`Not enough BIT (need 10000, have ${state.bit}) to buy an HP Boost!`);
         return;
@@ -146,7 +130,7 @@ export function buyHPBoost() {
     saveProgress();
 }
 
-export function buyHPBoostBulk(amount) {
+function buyHPBoostBulk(amount) {
     const costPerBoost = 10000;
     const digimon = state.digimonSlots[state.activeDigimonIndex];
     if (!digimon) {
@@ -177,7 +161,7 @@ export function buyHPBoostBulk(amount) {
     saveProgress();
 }
 
-export async function rebirthDigimon(slotIndex) {
+function rebirthDigimon(slotIndex) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) {
         logMessage(`No Digimon in slot ${slotIndex + 1}.`);
@@ -191,21 +175,7 @@ export async function rebirthDigimon(slotIndex) {
     const randomIndex = Math.floor(Math.random() * rookieNames.length);
     let newName = rookieNames[randomIndex] || "Agumon";
 
-    // Try fetching a new random Rookie from the API
-    try {
-        const proxyUrl = 'https://api.allorigins.win/get?url=';
-        const response = await fetch(proxyUrl + encodeURIComponent('https://digimon-api.com/api/v1/digimon?pageSize=100'));
-        const proxyData = await response.json();
-        const data = JSON.parse(proxyData.contents);
-        const rookies = data.content.filter(d => d.levels?.[0]?.level === "Rookie");
-        if (rookies.length > 0) {
-            newName = rookies[Math.floor(Math.random() * rookies.length)].name;
-        }
-    } catch (error) {
-        console.warn("Failed to fetch Rookie list for rebirth, using cached name:", newName);
-    }
-
-    const baseDigimon = await fetchDigimon(newName) || {
+    const baseDigimon = digimonData[newName] || {
         sprite: "https://digimon-api.com/images/digimon/Agumon.png",
         evolutions: [
             { name: "Greymon", level: 50, sprite: "https://digimon-api.com/images/digimon/Greymon.png" },
@@ -217,7 +187,7 @@ export async function rebirthDigimon(slotIndex) {
         nextEvolutions: []
     };
 
-    const multiplier = await getStatMultiplier(baseDigimon.stage);
+    const multiplier = getStatMultiplier(baseDigimon.stage);
     const newAttackBonus = Math.floor((digimon.attack - digimon.shopBonuses.attack - digimon.rebirthBonuses.attack) * 0.05);
     const newMaxHpBonus = Math.floor((digimon.maxHp - digimon.shopBonuses.hp - digimon.rebirthBonuses.hp) * 0.05);
 
@@ -245,7 +215,7 @@ export async function rebirthDigimon(slotIndex) {
     saveProgress();
 }
 
-export function gainXP(slotIndex, amount) {
+function gainXP(slotIndex, amount) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) return;
     digimon.xp += amount;
@@ -267,7 +237,7 @@ export function gainXP(slotIndex, amount) {
     updateUI();
 }
 
-export async function checkEvolution(slotIndex) {
+function checkEvolution(slotIndex) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon || digimon.evolutions.length === 0) return;
 
@@ -289,33 +259,35 @@ export async function checkEvolution(slotIndex) {
 
     if (validEvolutions.length > 0) {
         const evolution = validEvolutions[Math.floor(Math.random() * validEvolutions.length)];
-        await fetchDigimon(evolution.name); // Ensure evolution data is fetched
         const oldStage = digimon.stage;
         digimon.name = evolution.name;
         digimon.sprite = evolution.sprite;
-        digimon.stage = digimonData[evolution.name].stage;
-        const newMultiplier = await getStatMultiplier(digimon.stage);
-        const oldMultiplier = await getStatMultiplier(oldStage);
-        const baseDigimon = digimonData[evolution.name];
-        if (baseDigimon) {
-            digimon.maxHp = Math.floor((digimon.maxHp / oldMultiplier) * newMultiplier);
-            digimon.hp = digimon.maxHp;
-            digimon.attack = Math.floor((digimon.attack / oldMultiplier) * newMultiplier);
-            digimon.evolutions = baseDigimon.evolutions;
-        }
+        digimon.stage = digimonData[evolution.name]?.stage || (evolution.level === 50 ? "Champion" : evolution.level === 200 ? "Ultimate" : evolution.level === 1000 ? "Mega" : "Ultra");
+        const newMultiplier = getStatMultiplier(digimon.stage);
+        const oldMultiplier = getStatMultiplier(oldStage);
+        const baseDigimon = digimonData[evolution.name] || {
+            baseStats: BASE_STATS[digimon.stage] || { hp: 80, attack: 20 },
+            sprite: evolution.sprite,
+            stage: digimon.stage,
+            evolutions: []
+        };
+        digimon.maxHp = Math.floor((digimon.maxHp / oldMultiplier) * newMultiplier);
+        digimon.hp = digimon.maxHp;
+        digimon.attack = Math.floor((digimon.attack / oldMultiplier) * newMultiplier);
+        digimon.evolutions = baseDigimon.evolutions;
         logMessage(`${digimon.name} evolved into ${evolution.name}!`);
     }
     updateUI();
 }
 
-export async function jogress(slotIndex1, slotIndex2) {
+function jogress(slotIndex1, slotIndex2) {
     const digimon1 = state.digimonSlots[slotIndex1];
     const digimon2 = state.digimonSlots[slotIndex2];
     if (!digimon1 || !digimon2) {
         logMessage(`Invalid Digimon selection (Slot ${slotIndex1 + 1} or Slot ${slotIndex2 + 1} empty).`);
         return;
     }
-    const jogressPairs = await generateJogressPairs();
+    const jogressPairs = generateJogressPairs();
     const stageOrder = { Rookie: 1, Champion: 2, Ultimate: 3, Mega: 4, Ultra: 5 };
     const pair = jogressPairs.find(p =>
         (p.digimon1 === digimon1.name && p.digimon2 === digimon2.name) ||
@@ -333,13 +305,12 @@ export async function jogress(slotIndex1, slotIndex2) {
         logMessage(`Need ${pair.shardCost} Jogress Shards (have ${state.jogressShards}) for this Jogress. Buy in shop for 2000 BIT each.`);
         return;
     }
-    await fetchDigimon(pair.result.name); // Ensure result Digimon data is fetched
     state.jogressShards -= pair.shardCost;
     const newLevel = Math.max(digimon1.level, digimon2.level);
     const newStage = pair.result.baseStats.hp === BASE_STATS.Champion.hp ? "Champion" :
                     pair.result.baseStats.hp === BASE_STATS.Ultimate.hp ? "Ultimate" :
                     pair.result.baseStats.hp === BASE_STATS.Mega.hp ? "Mega" : "Ultra";
-    const multiplier = await getStatMultiplier(newStage);
+    const multiplier = getStatMultiplier(newStage);
     const baseMaxHp = pair.result.baseStats.hp * multiplier + digimon1.shopBonuses.hp + digimon2.shopBonuses.hp + digimon1.rebirthBonuses.hp + digimon2.rebirthBonuses.hp;
     const baseAttack = pair.result.baseStats.attack * multiplier + digimon1.shopBonuses.attack + digimon2.shopBonuses.attack + digimon1.rebirthBonuses.attack + digimon2.rebirthBonuses.attack;
     state.digimonSlots[slotIndex1] = {
@@ -366,7 +337,7 @@ export async function jogress(slotIndex1, slotIndex2) {
     saveProgress();
 }
 
-export function showDigimonInfo(slotIndex) {
+function showDigimonInfo(slotIndex) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) {
         logMessage(`No Digimon in slot ${slotIndex + 1}.`);
