@@ -1,0 +1,133 @@
+#game-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+#menu-screen, #jogress-screen, #equip-manage-screen, #battle-screen, #shop-screen {
+    display: none;
+}
+
+#menu-screen {
+    display: block;
+}
+
+.slot {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin: 10px 0;
+    display: inline-block;
+    width: 200px;
+    text-align: center;
+}
+
+.slot.active {
+    border-color: #00f;
+    background-color: #e6f3ff;
+}
+
+#battle-log {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+.battle-interface {
+    display: flex;
+    justify-content: space-between;
+}
+
+.stats {
+    width: 45%;
+    text-align: center;
+}
+
+#xp-bar {
+    width: 100%;
+    height: 10px;
+    background: #ccc;
+    margin-top: 5px;
+}
+
+#xp-progress {
+    height: 100%;
+    background: #0f0;
+    width: 0;
+}
+
+#timing-bar {
+    width: 100%;
+    height: 20px;
+    background: #ccc;
+    position: relative;
+    margin-top: 10px;
+}
+
+#marker {
+    height: 100%;
+    background: red;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.power-line {
+    position: absolute;
+    height: 100%;
+    width: 2px;
+    background: #000;
+}
+
+.power-line-20 { left: 20%; }
+.power-line-40 { left: 40%; }
+.power-line-60 { left: 60%; }
+.power-line-80 { left: 80%; }
+.power-line-90 { left: 90%; }
+.power-line-95 { left: 95%; }
+
+#precision-field {
+    width: 300px;
+    height: 200px;
+    background: #eee;
+    position: relative;
+    margin: 10px auto;
+}
+
+#target, #target2 {
+    width: 25px;
+    height: 25px;
+    background: red;
+    border-radius: 50%;
+    position: absolute;
+}
+
+.shop-item {
+    margin: 10px 0;
+}
+
+.equip-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.equip-item {
+    border: 1px solid #ccc;
+    padding: 10px;
+    width: 200px;
+    text-align: center;
+}
+
+.equip-item.selected {
+    border-color: #00f;
+    background-color: #e6f3ff;
+}
+
+button {
+    margin: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
