@@ -1,6 +1,6 @@
 import { fetchDigimon, generateJogressPairs } from './data.js';
 
-async function getStatMultiplier(stage) {
+export async function getStatMultiplier(stage) {
     return {
         Champion: 2,
         Ultimate: 3,
@@ -10,7 +10,7 @@ async function getStatMultiplier(stage) {
     }[stage] || 1;
 }
 
-async function hatchEgg(slotIndex) {
+export async function hatchEgg(slotIndex) {
     const rookieNames = Object.keys(digimonData).filter(name => digimonData[name]?.stage === "Rookie");
     const randomIndex = Math.floor(Math.random() * rookieNames.length);
     let name = rookieNames[randomIndex] || "Agumon";
@@ -63,7 +63,7 @@ async function hatchEgg(slotIndex) {
     logMessage(`A ${newDigimon.name} hatched in slot ${slotIndex + 1}!`);
 }
 
-async function buySlot(slotIndex) {
+export async function buySlot(slotIndex) {
     const cost = 100 * Math.pow(5, slotIndex);
     if (state.digimonSlots[slotIndex]) {
         logMessage(`Slot ${slotIndex + 1} is already occupied!`);
@@ -79,7 +79,7 @@ async function buySlot(slotIndex) {
     saveProgress();
 }
 
-function buyAttackBoost() {
+export function buyAttackBoost() {
     if (state.bit < 10000) {
         logMessage(`Not enough BIT (need 10000, have ${state.bit}) to buy an Attack Boost!`);
         return;
@@ -97,7 +97,7 @@ function buyAttackBoost() {
     saveProgress();
 }
 
-function buyAttackBoostBulk(amount) {
+export function buyAttackBoostBulk(amount) {
     const costPerBoost = 10000;
     const digimon = state.digimonSlots[state.activeDigimonIndex];
     if (!digimon) {
@@ -127,7 +127,7 @@ function buyAttackBoostBulk(amount) {
     saveProgress();
 }
 
-function buyHPBoost() {
+export function buyHPBoost() {
     if (state.bit < 10000) {
         logMessage(`Not enough BIT (need 10000, have ${state.bit}) to buy an HP Boost!`);
         return;
@@ -146,7 +146,7 @@ function buyHPBoost() {
     saveProgress();
 }
 
-function buyHPBoostBulk(amount) {
+export function buyHPBoostBulk(amount) {
     const costPerBoost = 10000;
     const digimon = state.digimonSlots[state.activeDigimonIndex];
     if (!digimon) {
@@ -177,7 +177,7 @@ function buyHPBoostBulk(amount) {
     saveProgress();
 }
 
-async function rebirthDigimon(slotIndex) {
+export async function rebirthDigimon(slotIndex) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) {
         logMessage(`No Digimon in slot ${slotIndex + 1}.`);
@@ -245,7 +245,7 @@ async function rebirthDigimon(slotIndex) {
     saveProgress();
 }
 
-function gainXP(slotIndex, amount) {
+export function gainXP(slotIndex, amount) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) return;
     digimon.xp += amount;
@@ -267,7 +267,7 @@ function gainXP(slotIndex, amount) {
     updateUI();
 }
 
-async function checkEvolution(slotIndex) {
+export async function checkEvolution(slotIndex) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon || digimon.evolutions.length === 0) return;
 
@@ -308,7 +308,7 @@ async function checkEvolution(slotIndex) {
     updateUI();
 }
 
-async function jogress(slotIndex1, slotIndex2) {
+export async function jogress(slotIndex1, slotIndex2) {
     const digimon1 = state.digimonSlots[slotIndex1];
     const digimon2 = state.digimonSlots[slotIndex2];
     if (!digimon1 || !digimon2) {
@@ -366,7 +366,7 @@ async function jogress(slotIndex1, slotIndex2) {
     saveProgress();
 }
 
-function showDigimonInfo(slotIndex) {
+export function showDigimonInfo(slotIndex) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) {
         logMessage(`No Digimon in slot ${slotIndex + 1}.`);

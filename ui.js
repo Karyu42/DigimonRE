@@ -1,3 +1,8 @@
+import { hatchEgg } from './digimon.js';
+import { saveProgress, loadFromLocalStorage, resetState, setAfkMode, buyJogressShards } from './storage.js';
+import { equipFromInventory, sellRing, sellInventoryRing } from './equipment.js';
+import { toggleCombatMode, attack, endBattle } from './battle.js';
+
 function toggleHealing() {
     const healToggle = document.getElementById("heal-toggle");
     if (healToggle) {
@@ -439,9 +444,18 @@ function resetGame() {
             if (element) element.style.display = screen === "menu-screen" ? "block" : "none";
         });
         const battleLog = document.getElementById("battle-log");
-        if (battleLog) battleLog.innerHTML = "";
-        hatchEgg(0);
-        updateUI();
+        if (battelLog) battleLog.innerHTML = "";
+        if (typeof hatchEgg === 'function') {
+            hatchEgg(0).then(() => {
+                updateUI();
+            }).catch(err => {
+                console.error("Failed to hatch default Digimon:", err);
+                logMessage("Failed to initialize default Digimon.");
+            });
+        } else {
+            console.error("hatchEgg is not defined.");
+            logMessage("Failed to initialize game: hatchEgg not available.");
+        }
     } else {
         console.error("resetState is not defined. Ensure storage.js is loaded correctly.");
         logMessage("Failed to reset game: system error. Please refresh the page.");
@@ -483,7 +497,7 @@ function toggleJogressMenu() {
     if (jogressScreen && menuScreen) {
         if (jogressScreen.style.display === "none") {
             menuScreen.style.display = "none";
-            jogressScreen.style.display = "block";
+            jigressScreen.style.display = "block";
             populateJogressDropdowns();
         } else {
             jogressScreen.style.display = "none";
@@ -492,7 +506,7 @@ function toggleJogressMenu() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log("Starting game initialization...");
     isInitialLoad = true;
     window.state = window.state || {};
@@ -507,9 +521,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize default Digimon if none exist
     if (!state.digimonSlots.some(slot => slot !== null)) {
         console.log("No Digimon in slots, hatching default Agumon...");
-        hatchEgg(0);
-        state.bit = 1000; // Give initial BIT for gameplay
-        logMessage("Welcome to Digimon RPG! A default Agumon has been hatched.");
+        if (typeof hatchEgg === 'function') {
+            try {
+                await hatchEgg(0);
+                state.bit = 1000; // Give initial BIT for gameplay
+                logMessage("Welcome to Digimon RPG! A default Agumon has been hatched.");
+            } catch (err) {
+                console.error("Failed to hatch default Digimon:", err);
+                logMessage("Failed to initialize default Digimon.");
+            }
+        } else {
+            console.error("hatchEgg is not defined.");
+            logMessage("Failed to initialize game: hatchEgg not available.");
+        }
     }
 
     const screens = ["battle-screen", "shop-screen", "jogress-screen", "equip-manage-screen", "menu-screen"];

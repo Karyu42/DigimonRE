@@ -1,8 +1,23 @@
+body {
+    background-color: #1a1a2e;
+    color: #e6e6fa;
+    font-family: 'Verdana', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
 #game-container {
-    max-width: 800px;
-    margin: 0 auto;
+    max-width: 900px;
+    margin: 20px auto;
     padding: 20px;
-    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #16213e, #0f3460);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+h2, h3, h4 {
+    color: #00b7eb;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 #menu-screen, #jogress-screen, #equip-manage-screen, #battle-screen, #shop-screen {
@@ -14,71 +29,95 @@
 }
 
 .slot {
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin: 10px 0;
+    border: 2px solid #00b7eb;
+    padding: 15px;
+    margin: 10px;
+    background: #2a2a4e;
+    border-radius: 8px;
     display: inline-block;
-    width: 200px;
+    width: 220px;
     text-align: center;
+    transition: transform 0.2s;
+}
+
+.slot:hover {
+    transform: scale(1.05);
 }
 
 .slot.active {
-    border-color: #00f;
-    background-color: #e6f3ff;
+    border-color: #ff4500;
+    background: #3a3a6e;
 }
 
 #battle-log {
-    max-height: 200px;
+    max-height: 250px;
     overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin-top: 10px;
+    border: 1px solid #00b7eb;
+    padding: 15px;
+    margin-top: 15px;
+    background: #1e1e3e;
+    border-radius: 5px;
 }
 
 .battle-interface {
     display: flex;
     justify-content: space-between;
+    gap: 20px;
 }
 
 .stats {
     width: 45%;
     text-align: center;
+    background: #2a2a4e;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.stats img {
+    max-width: 100px;
+    border: 2px solid #00b7eb;
+    border-radius: 5px;
 }
 
 #xp-bar {
     width: 100%;
-    height: 10px;
-    background: #ccc;
-    margin-top: 5px;
+    height: 12px;
+    background: #333;
+    margin-top: 8px;
+    border-radius: 5px;
 }
 
 #xp-progress {
     height: 100%;
-    background: #0f0;
+    background: linear-gradient(to right, #00ff00, #00b7eb);
     width: 0;
+    border-radius: 5px;
 }
 
 #timing-bar {
     width: 100%;
-    height: 20px;
-    background: #ccc;
+    height: 25px;
+    background: #333;
     position: relative;
-    margin-top: 10px;
+    margin-top: 15px;
+    border-radius: 5px;
 }
 
 #marker {
     height: 100%;
-    background: red;
+    background: linear-gradient(to right, #ff4500, #ff8c00);
     position: absolute;
     top: 0;
     left: 0;
+    border-radius: 5px;
 }
 
 .power-line {
     position: absolute;
     height: 100%;
-    width: 2px;
-    background: #000;
+    width: 3px;
+    background: #fff;
+    opacity: 0.7;
 }
 
 .power-line-20 { left: 20%; }
@@ -89,45 +128,71 @@
 .power-line-95 { left: 95%; }
 
 #precision-field {
-    width: 300px;
-    height: 200px;
-    background: #eee;
+    width: 350px;
+    height: 250px;
+    background: #1e1e3e;
     position: relative;
-    margin: 10px auto;
+    margin: 15px auto;
+    border: 2px solid #00b7eb;
+    border-radius: 5px;
 }
 
 #target, #target2 {
-    width: 25px;
-    height: 25px;
-    background: red;
+    width: 30px;
+    height: 30px;
+    background: #ff4500;
     border-radius: 50%;
     position: absolute;
+    border: 2px solid #fff;
 }
 
 .shop-item {
-    margin: 10px 0;
+    margin: 15px 0;
+    padding: 10px;
+    background: #2a2a4e;
+    border-radius: 5px;
 }
 
 .equip-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 15px;
 }
 
 .equip-item {
-    border: 1px solid #ccc;
-    padding: 10px;
-    width: 200px;
+    border: 2px solid #00b7eb;
+    padding: 15px;
+    width: 220px;
     text-align: center;
+    background: #2a2a4e;
+    border-radius: 8px;
 }
 
 .equip-item.selected {
-    border-color: #00f;
-    background-color: #e6f3ff;
+    border-color: #ff4500;
+    background: #3a3a6e;
 }
 
 button {
     margin: 5px;
-    padding: 5px 10px;
+    padding: 8px 16px;
+    background: #00b7eb;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
     cursor: pointer;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background: #ff4500;
+}
+
+button:disabled {
+    background: #666;
+    cursor: not-allowed;
+}
+
+p {
+    margin: 5px 0;
 }
