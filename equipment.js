@@ -1,4 +1,6 @@
-function createRing(opponent) {
+import { logMessage, updateUI } from './ui.js';
+
+export function createRing(opponent) {
     console.log("Creating ring for defeated opponent:", opponent.name);
     const effects = [
         { type: "attackDamage", value: Math.floor(Math.random() * 10) + 5 },
@@ -22,7 +24,7 @@ function createRing(opponent) {
     };
 }
 
-function equipFromInventory(inventoryIndex) {
+export function equipFromInventory(inventoryIndex) {
     if (inventoryIndex < 0 || inventoryIndex >= state.ringInventory.length) {
         logMessage("Invalid inventory index!");
         return;
@@ -42,7 +44,7 @@ function equipFromInventory(inventoryIndex) {
     saveProgress(true);
 }
 
-function sellRing(slotIndex) {
+export function sellRing(slotIndex) {
     if (slotIndex < 0 || slotIndex >= 5 || !state.equipmentSlots[slotIndex]) {
         logMessage(`No ring in slot ${slotIndex + 1} to sell!`);
         return;
@@ -56,7 +58,7 @@ function sellRing(slotIndex) {
     saveProgress(true);
 }
 
-function sellInventoryRing(inventoryIndex) {
+export function sellInventoryRing(inventoryIndex) {
     if (inventoryIndex < 0 || inventoryIndex >= state.ringInventory.length) {
         logMessage("Invalid inventory index!");
         return;
@@ -69,5 +71,3 @@ function sellInventoryRing(inventoryIndex) {
     updateUI();
     saveProgress(true);
 }
-
-console.log("equipment.js loaded successfully.");

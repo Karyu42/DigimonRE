@@ -1,4 +1,10 @@
-function createOpponent(isBoss) {
+import { fetchDigimon } from './data.js';
+import { gainXP } from './digimon.js';
+import { createRing } from './equipment.js';
+import { saveProgress, XP_CAPS } from './storage.js';
+import { updateUI, logMessage, showMenu } from './ui.js';
+
+export async function createOpponent(isBoss = false) {
     console.log("Creating opponent for stage:", state.selectedEnemyStage, "isBoss:", isBoss);
     const activeDigimon = state.digimonSlots[state.activeDigimonIndex];
     if (!activeDigimon) {
@@ -21,7 +27,7 @@ function createOpponent(isBoss) {
     } else {
         const rookieNames = Object.keys(digimonData).filter(name => digimonData[name]?.stage === "Rookie");
         for (const name of rookieNames) {
-            const data = digimonData[name];
+            const data = await fetchDigimon(name);
             if (!data) continue;
             if (stage === "Rookie" && data.stage === "Rookie") {
                 possibleDigimon.push({ name, baseStats: data.baseStats, sprite: data.sprite, stage: data.stage });
@@ -32,12 +38,10 @@ function createOpponent(isBoss) {
                         (stage === "Ultimate" && evo.level === 200) ||
                         (stage === "Mega" && evo.level === 1000)
                     ) {
-                        const evoData = digimonData[evo.name] || {
-                            baseStats: BASE_STATS[stage] || { hp: 80, attack: 20 },
-                            sprite: "https://digimon-api.com/images/digimon/" + encodeURIComponent(evo.name) + ".png",
-                            stage
-                        };
-                        possibleDigimon.push({ name: evo.name, baseStats: evoData.baseStats, sprite: evo.sprite, stage });
+                        const evoData = await fetchDigimon(evo.name);
+                        if (evoData) {
+                            possibleDigimon.push({ name: evo.name, baseStats: evoData.baseStats, sprite: evo.sprite, stage: stage });
+                        }
                     }
                 }
             }
@@ -84,7 +88,7 @@ function createOpponent(isBoss) {
     };
 }
 
-function spawnNewTarget(targetId) {
+export function spawnNewTarget(targetId) {
     const field = document.getElementById("precision-field");
     const target = document.getElementById(targetId);
     if (!field || !target) {
@@ -106,7 +110,7 @@ function spawnNewTarget(targetId) {
     target.style.top = `${position.y}px`;
 }
 
-function performAttack(isAuto, clickX, clickY) {
+export function performAttack(isAuto = false, clickX = null, clickY = null) {
     const player = state.digimonSlots[state.activeDigimonIndex];
     if (!player || !state.battleActive || player.hp <= 0 || !state.opponent || state.opponent.hp <= 0) {
         logMessage("Cannot attack: invalid battle state.");
@@ -266,7 +270,7 @@ function performAttack(isAuto, clickX, clickY) {
         }
         saveProgress(true);
         if (!state.opponent.name.endsWith("(Boss)")) {
-            state.opponent = createOpponent(false);
+            state.opponent = await createOpponent(false);
             logMessage(`New opponent: ${state.opponent.name}!`);
             if (state.combatMode === "precision") {
                 state.targetPositions = prevTargetPositions;
@@ -306,7 +310,7 @@ function performAttack(isAuto, clickX, clickY) {
     updateUI();
 }
 
-function playerAttack(event) {
+export function playerAttack(event) {
     if (state.combatMode === "precision" && event) {
         performAttack(false, event.clientX, event.clientY);
     } else if (state.combatMode === "charging") {
@@ -314,7 +318,7 @@ function playerAttack(event) {
     }
 }
 
-function opponentAttack() {
+export function opponentAttack() {
     if (state.enemyStunned) {
         logMessage(`${state.opponent.name} is stunned and cannot attack!`);
         state.enemyStunned = false;
@@ -358,7 +362,7 @@ function opponentAttack() {
     updateUI();
 }
 
-function animateMarker(timestamp) {
+export function animateMarker(timestamp) {
     if (!state.battleActive) return;
 
     const timingBar = document.getElementById("timing-bar");
@@ -403,7 +407,7 @@ function animateMarker(timestamp) {
     }
 }
 
-function attack(event) {
+export function attack(event) {
     if (state.battleActive && !state.isAttackDisabled && state.combatMode === "precision" && event) {
         playerAttack(event);
     } else if (state.battleActive && !state.isAttackDisabled && state.combatMode === "charging") {
@@ -413,14 +417,14 @@ function attack(event) {
     }
 }
 
-function startBattle(isBoss) {
+export async function startBattle(isBoss) {
     console.log("Starting battle, isBoss:", isBoss);
     if (state.activeDigimonIndex === null) {
         logMessage("No active Digimon selected! Please select a Digimon first.");
         return;
     }
     state.selectedEnemyStage = document.getElementById("enemy-stage-select").value;
-    state.opponent = createOpponent(isBoss);
+    state.opponent = await createOpponent(isBoss);
     if (!state.opponent) {
         logMessage("Failed to create opponent for this stage!");
         return;
@@ -479,7 +483,7 @@ function startBattle(isBoss) {
     updateUI();
 }
 
-function endBattle() {
+export function endBattle() {
     state.battleActive = false;
     if (state.animationFrame) {
         cancelAnimationFrame(state.animationFrame);
@@ -501,7 +505,7 @@ function endBattle() {
     showMenu();
 }
 
-function handleKeyPress(event) {
+export function handleKeyPress(event) {
     if (state.combatMode === "charging" && event.code === "KeyA" && state.battleActive) {
         playerAttack();
     } else if (event.code === "Space") {
@@ -509,7 +513,7 @@ function handleKeyPress(event) {
     }
 }
 
-function toggleCombatMode() {
+export function toggleCombatMode() {
     const combatModeSelect = document.getElementById("combat-mode-select");
     if (combatModeSelect) {
         state.combatMode = combatModeSelect.value;

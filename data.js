@@ -1,4 +1,4 @@
-const BASE_STATS = {
+export const BASE_STATS = {
     Rookie: { hp: 80, attack: 20 },
     Champion: { hp: 120, attack: 30 },
     Ultimate: { hp: 160, attack: 40 },
@@ -6,7 +6,7 @@ const BASE_STATS = {
     Ultra: { hp: 240, attack: 60 }
 };
 
-let digimonData = {
+export let digimonData = {
     Agumon: {
         sprite: "https://digimon-api.com/images/digimon/Agumon.png",
         evolutions: [
@@ -53,7 +53,7 @@ let digimonData = {
     }
 };
 
-async function fetchDigimon(name) {
+export async function fetchDigimon(name) {
     if (digimonData[name]) return digimonData[name]; // Return cached data
 
     try {
@@ -103,7 +103,7 @@ async function fetchDigimon(name) {
     }
 }
 
-function normalizeStage(apiLevel) {
+export function normalizeStage(apiLevel) {
     switch (apiLevel) {
         case "Rookie": return "Rookie";
         case "Champion": return "Champion";
@@ -114,7 +114,7 @@ function normalizeStage(apiLevel) {
     }
 }
 
-function getEvolutionLevel(currentStage) {
+export function getEvolutionLevel(currentStage) {
     const levelMap = {
         Rookie: 50,
         Champion: 200,
@@ -124,7 +124,7 @@ function getEvolutionLevel(currentStage) {
     return levelMap[currentStage] || 50;
 }
 
-function getJogressShardCost(resultStage) {
+export function getJogressShardCost(resultStage) {
     const shardCostMap = {
         Champion: 3,
         Ultimate: 5,
@@ -134,13 +134,13 @@ function getJogressShardCost(resultStage) {
     return shardCostMap[resultStage] || 5;
 }
 
-function parseConditionPartners(condition) {
+export function parseConditionPartners(condition) {
     const partnerMatch = condition.match(/with (.+?)(?:, or | or |$)/);
     if (!partnerMatch) return [];
     return partnerMatch[1].split(/, | or /).map(name => name.trim()).filter(name => name && digimonData[name]);
 }
 
-async function generateJogressPairs() {
+export async function generateJogressPairs() {
     const validStages = ["Rookie", "Champion", "Ultimate", "Mega", "Ultra"];
     const stageOrder = { Rookie: 1, Champion: 2, Ultimate: 3, Mega: 4, Ultra: 5 };
     const jogressPairs = [];
@@ -148,7 +148,7 @@ async function generateJogressPairs() {
     for (const [name, digimon] of Object.entries(digimonData)) {
         for (const evo of digimon.nextEvolutions) {
             const evoStage = normalizeStage(evo.level);
-            if (!validStages.includes(evoStage) || stageOrder[evoStage] <= stageOrder[digimon.stage]) continue;
+            if (!validStages.includes(evoStage) || !digimonData[evo.digimon] || stageOrder[evoStage] <= stageOrder[digimon.stage]) continue;
 
             if (evo.condition && evo.condition.includes("with ")) {
                 const partners = parseConditionPartners(evo.condition);
@@ -187,7 +187,7 @@ async function generateJogressPairs() {
     return uniquePairs;
 }
 
-function getFallbackJogressPairs() {
+export function getFallbackJogressPairs() {
     return [
         {
             digimon1: "Angemon",
@@ -258,7 +258,7 @@ function getFallbackJogressPairs() {
     ];
 }
 
-function isValidUrl(url) {
+export function isValidUrl(url) {
     try {
         new URL(url);
         return true;

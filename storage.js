@@ -1,10 +1,18 @@
+import { logMessage, updateUI } from './ui.js';
+import { gainXP } from './digimon.js';
+
 const STORAGE_KEY = "digimonRPG_save";
 
-if (typeof window.state === "undefined") {
-    window.state = {};
-}
+export const XP_CAPS = {
+    Rookie: 100,
+    Champion: 200,
+    Ultimate: 300,
+    Mega: 400,
+    Ultra: 500
+};
 
-function resetState(isInitial = false) {
+export function resetState(isInitial = false) {
+    window.state = window.state || {};
     state.digimonSlots = [null, null, null, null, null];
     state.activeDigimonIndex = null;
     state.bit = 0;
@@ -27,7 +35,6 @@ function resetState(isInitial = false) {
     state.enemyStunned = false;
     state.targetPositions = {};
     state.animationFrame = null;
-    state.animationStartTime = null;
     state.afkModes = [null, null, null, null, null];
 
     if (!isInitial) {
@@ -35,7 +42,7 @@ function resetState(isInitial = false) {
     }
 }
 
-function saveProgress(autoSave = false) {
+export function saveProgress(autoSave = false) {
     try {
         const saveData = JSON.stringify({
             digimonSlots: state.digimonSlots,
@@ -60,7 +67,7 @@ function saveProgress(autoSave = false) {
     }
 }
 
-function loadFromLocalStorage() {
+export function loadFromLocalStorage() {
     try {
         const saveData = localStorage.getItem(STORAGE_KEY);
         if (saveData) {
@@ -84,7 +91,7 @@ function loadFromLocalStorage() {
     }
 }
 
-function exportSave() {
+export function exportSave() {
     try {
         const saveData = localStorage.getItem(STORAGE_KEY);
         if (saveData) {
@@ -107,7 +114,7 @@ function exportSave() {
     }
 }
 
-function loadProgress(file) {
+export function loadProgress(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
@@ -134,7 +141,7 @@ function loadProgress(file) {
     reader.readAsText(file);
 }
 
-function buyJogressShards() {
+export function buyJogressShards() {
     if (state.bit < 2000) {
         logMessage(`Not enough BIT (need 2000, have ${state.bit}) to buy a Jogress Shard!`);
         return;
@@ -146,7 +153,7 @@ function buyJogressShards() {
     saveProgress(true);
 }
 
-function setAfkMode(slotIndex, mode) {
+export function setAfkMode(slotIndex, mode) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) {
         logMessage(`No Digimon in slot ${slotIndex + 1} to set AFK mode!`);
@@ -190,13 +197,3 @@ function setAfkMode(slotIndex, mode) {
 
     saveProgress(true);
 }
-
-const XP_CAPS = {
-    Rookie: 100,
-    Champion: 200,
-    Ultimate: 300,
-    Mega: 400,
-    Ultra: 500
-};
-
-console.log("storage.js loaded successfully.");

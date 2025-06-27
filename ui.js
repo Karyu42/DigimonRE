@@ -1,9 +1,9 @@
-import { hatchEgg } from './digimon.js';
+import { hatchEgg, buySlot, buyAttackBoost, buyHPBoost, buyAttackBoostBulk, buyHPBoostBulk, rebirthDigimon, gainXP, checkEvolution, jogress, showDigimonInfo } from './digimon.js';
 import { saveProgress, loadFromLocalStorage, resetState, setAfkMode, buyJogressShards } from './storage.js';
-import { equipFromInventory, sellRing, sellInventoryRing } from './equipment.js';
-import { toggleCombatMode, attack, endBattle } from './battle.js';
+import { createRing, equipFromInventory, sellRing, sellInventoryRing } from './equipment.js';
+import { startBattle, toggleCombatMode, attack, endBattle, handleKeyPress } from './battle.js';
 
-function toggleHealing() {
+export function toggleHealing() {
     const healToggle = document.getElementById("heal-toggle");
     if (healToggle) {
         state.healOnVictory = healToggle.checked;
@@ -12,7 +12,7 @@ function toggleHealing() {
     }
 }
 
-function populateJogressDropdowns() {
+export function populateJogressDropdowns() {
     const dropdown1 = document.getElementById("jogress-digimon1");
     const dropdown2 = document.getElementById("jogress-digimon2");
     if (!dropdown1 || !dropdown2) return;
@@ -43,7 +43,7 @@ function populateJogressDropdowns() {
     };
 }
 
-function performJogress() {
+export function performJogress() {
     const dropdown1 = document.getElementById("jogress-digimon1");
     const dropdown2 = document.getElementById("jogress-digimon2");
     if (!dropdown1 || !dropdown2) return;
@@ -65,7 +65,7 @@ function performJogress() {
     showMenu();
 }
 
-function goToShop() {
+export function goToShop() {
     const menuScreen = document.getElementById("menu-screen");
     const shopScreen = document.getElementById("shop-screen");
     if (menuScreen && shopScreen) {
@@ -75,7 +75,7 @@ function goToShop() {
     }
 }
 
-function setActiveDigimon(index) {
+export function setActiveDigimon(index) {
     if (!state.digimonSlots[index]) {
         logMessage("No Digimon in this slot!");
         return;
@@ -85,7 +85,7 @@ function setActiveDigimon(index) {
     saveProgress(true);
 }
 
-function updateMenu() {
+export function updateMenu() {
     const menuPlayerName = document.getElementById("menu-player-name");
     const menuPlayerLevel = document.getElementById("menu-player-level");
     const slotsDiv = document.getElementById("digimon-slots");
@@ -158,7 +158,7 @@ function updateMenu() {
     });
 }
 
-function updateShop() {
+export function updateShop() {
     const shopBitAmount = document.getElementById("shop-bit-amount");
     const shopJogressShards = document.getElementById("shop-jogress-shards");
     if (shopBitAmount && shopJogressShards) {
@@ -167,7 +167,7 @@ function updateShop() {
     }
 }
 
-function updateUI() {
+export function updateUI() {
     const bitAmount = document.getElementById("bit-amount");
     const jogressShards = document.getElementById("jogress-shards");
     const shopBitAmount = document.getElementById("shop-bit-amount");
@@ -269,7 +269,7 @@ function updateUI() {
     updateMenu();
 }
 
-function showEquipMenu(slotIndex) {
+export function showEquipMenu(slotIndex) {
     if (state.activeDigimonIndex === null) {
         logMessage("No active Digimon selected! Please select a Digimon first.");
         return;
@@ -401,7 +401,7 @@ function showEquipMenu(slotIndex) {
     equipMenu.appendChild(inventoryGrid);
 }
 
-function unequipRing(slotIndex) {
+export function unequipRing(slotIndex) {
     if (slotIndex < 0 || slotIndex >= 5 || !state.equipmentSlots[slotIndex]) {
         logMessage(`No ring in slot ${slotIndex + 1} to unequip!`);
         return;
@@ -421,7 +421,7 @@ function unequipRing(slotIndex) {
     saveProgress(true);
 }
 
-function resetGame() {
+export function resetGame() {
     if (state.globalAfkInterval) {
         clearInterval(state.globalAfkInterval);
         state.globalAfkInterval = null;
@@ -444,7 +444,7 @@ function resetGame() {
             if (element) element.style.display = screen === "menu-screen" ? "block" : "none";
         });
         const battleLog = document.getElementById("battle-log");
-        if (battelLog) battleLog.innerHTML = "";
+        if (battleLog) battleLog.innerHTML = "";
         if (typeof hatchEgg === 'function') {
             hatchEgg(0).then(() => {
                 updateUI();
@@ -462,7 +462,7 @@ function resetGame() {
     }
 }
 
-function logMessage(message) {
+export function logMessage(message) {
     const log = document.getElementById("battle-log");
     if (log) {
         const p = document.createElement("p");
@@ -474,7 +474,7 @@ function logMessage(message) {
     }
 }
 
-function showMenu() {
+export function showMenu() {
     const screens = ["battle-screen", "shop-screen", "jogress-screen", "equip-manage-screen", "menu-screen"];
     screens.forEach(screen => {
         const element = document.getElementById(screen);
@@ -483,7 +483,7 @@ function showMenu() {
     updateUI();
 }
 
-function handleLoadGame(file) {
+export function handleLoadGame(file) {
     if (file) {
         loadProgress(file);
         const loadInput = document.getElementById("load-game-input");
@@ -491,13 +491,13 @@ function handleLoadGame(file) {
     }
 }
 
-function toggleJogressMenu() {
+export function toggleJogressMenu() {
     const jogressScreen = document.getElementById("jogress-screen");
     const menuScreen = document.getElementById("menu-screen");
     if (jogressScreen && menuScreen) {
         if (jogressScreen.style.display === "none") {
             menuScreen.style.display = "none";
-            jigressScreen.style.display = "block";
+            jogressScreen.style.display = "block";
             populateJogressDropdowns();
         } else {
             jogressScreen.style.display = "none";
