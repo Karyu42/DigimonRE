@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM fully loaded, attaching events'); // Temporary debug, remove after testing
+    console.log('DOM fully loaded, setting up event delegation'); // Temporary debug, remove after testing
 
     const buttons = {
         'start-normal-fight': () => startBattle(),
@@ -34,19 +34,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const buyButtons = document.querySelectorAll('.slot button');
-    if (buyButtons.length > 0) {
-        buyButtons.forEach(button => {
-            const slotIndex = parseInt(button.parentElement.textContent.match(/\d+/)[0]) - 1;
-            if (!isNaN(slotIndex)) {
-                button.addEventListener('click', () => buySlot(slotIndex));
-                console.log(`Attached buy event to slot ${slotIndex + 1}`); // Temporary debug, remove after testing
-            } else {
-                console.log(`Invalid slot index for button in ${button.parentElement.textContent}`);
+    // Event delegation for dynamic slot buttons
+    const digimonSlots = document.getElementById('digimon-slots');
+    if (digimonSlots) {
+        digimonSlots.addEventListener('click', (event) => {
+            const button = event.target.closest('.slot button');
+            if (button) {
+                const slotIndex = parseInt(button.parentElement.textContent.match(/\d+/)[0]) - 1;
+                if (!isNaN(slotIndex)) {
+                    buySlot(slotIndex);
+                    console.log(`Triggered buySlot for slot ${slotIndex + 1}`); // Temporary debug, remove after testing
+                } else {
+                    console.log(`Invalid slot index for button in ${button.parentElement.textContent}`);
+                }
             }
         });
     } else {
-        console.log('No .slot button elements found');
+        console.log('digimon-slots element not found');
     }
 
     const combatModeSelect = document.getElementById('combat-mode-select');

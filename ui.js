@@ -129,11 +129,13 @@ function updateMenu() {
             const activateBtn = document.createElement("button");
             activateBtn.textContent = index === state.activeDigimonIndex ? 'Deactivate' : 'Activate';
             activateBtn.title = index === state.activeDigimonIndex ? "Deactivate this Digimon" : "Set as active Digimon";
+            activateBtn.className = "slot-action"; // Consistent class for event delegation
             activateBtn.onclick = () => setActiveDigimon(index);
 
             const modeBtn = document.createElement("button");
             modeBtn.textContent = state.afkModes[index] === 'training' ? 'Training' : state.afkModes[index] === 'farming' ? 'Farming' : 'Off';
             modeBtn.title = "Cycle AFK mode: Off -> Training -> Farming";
+            modeBtn.className = "slot-action"; // Consistent class
             modeBtn.onclick = () => {
                 setAfkMode(index, 'cycle');
                 updateMenu();
@@ -142,6 +144,7 @@ function updateMenu() {
             const rebirthBtn = document.createElement("button");
             rebirthBtn.textContent = "Rebirth";
             rebirthBtn.title = digimon.level < 15 ? "Requires level 15" : "Reset to level 1 with bonuses";
+            rebirthBtn.className = "slot-action"; // Consistent class
             rebirthBtn.disabled = digimon.level < 15;
             rebirthBtn.onclick = () => {
                 rebirthDigimon(index);
@@ -154,6 +157,7 @@ function updateMenu() {
             slotDiv.appendChild(activateBtn);
             slotDiv.appendChild(modeBtn);
             slotDiv.appendChild(rebirthBtn);
+            console.log(`Created buttons for slot ${index + 1}`); // Temporary debug, remove after testing
         } else {
             const emptyP = document.createElement("p");
             emptyP.textContent = `Slot ${index + 1}`;
@@ -161,9 +165,11 @@ function updateMenu() {
             const buyBtn = document.createElement("button");
             buyBtn.textContent = `Buy (${cost} BIT)`;
             buyBtn.title = `Hatch a Digimon in this slot for ${cost} BIT`;
+            buyBtn.className = "slot-action"; // Consistent class for event delegation
             buyBtn.onclick = () => buySlot(index);
             slotDiv.appendChild(emptyP);
             slotDiv.appendChild(buyBtn);
+            console.log(`Created buy button for slot ${index + 1}`); // Temporary debug, remove after testing
         }
         slotsDiv.appendChild(slotDiv);
     });
