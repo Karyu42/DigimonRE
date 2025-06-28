@@ -1,198 +1,426 @@
 body {
-    background-color: #1a1a2e;
-    color: #e6e6fa;
-    font-family: 'Verdana', sans-serif;
+    font-family: 'Orbitron', 'Verdana', sans-serif;
+    text-align: center;
+    background-image: url('https://www.transparenttextures.com/patterns/circuit-board.png');
+    background-color: #1A2A55;
     margin: 0;
-    padding: 0;
+    padding: 15px;
+    color: #FFFFFF;
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-y: auto;
 }
 
 #game-container {
-    max-width: 900px;
-    margin: 20px auto;
+    max-width: 90vw;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: rgba(10, 31, 68, 0.85);
     padding: 20px;
-    background: linear-gradient(135deg, #16213e, #0f3460);
     border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 15px rgba(102, 204, 153, 0.3);
+    color: #FFFFFF;
+    box-sizing: border-box;
+    border: 2px solid #66CC99;
 }
 
-h2, h3, h4 {
-    color: #00b7eb;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-#menu-screen, #jogress-screen, #equip-manage-screen, #battle-screen, #shop-screen {
-    display: none;
-}
-
-#menu-screen {
-    display: block;
-}
-
-.slot {
-    border: 2px solid #00b7eb;
-    padding: 15px;
-    margin: 10px;
-    background: #2a2a4e;
-    border-radius: 8px;
-    display: inline-block;
-    width: 220px;
-    text-align: center;
-    transition: transform 0.2s;
-}
-
-.slot:hover {
-    transform: scale(1.05);
-}
-
-.slot.active {
-    border-color: #ff4500;
-    background: #3a3a6e;
-}
-
-#battle-log {
-    max-height: 250px;
-    overflow-y: auto;
-    border: 1px solid #00b7eb;
-    padding: 15px;
-    margin-top: 15px;
-    background: #1e1e3e;
-    border-radius: 5px;
+#battle-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
 }
 
 .battle-interface {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     gap: 20px;
+    width: 100%;
+    max-width: 1300px;
+    flex-wrap: nowrap;
+}
+
+.digimon-option, .shop-item {
+    display: inline-block;
+    margin: 12px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.digimon-option:hover, .shop-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px #66CC99;
+}
+
+.digimon-option img, .shop-item img {
+    width: 90px;
+    height: 90px;
+    border: 2px solid #A100A1;
+    border-radius: 8px;
+    background: transparent;
+    object-fit: contain;
+    mix-blend-mode: screen;
+}
+
+#battle-screen, #menu-screen, #shop-screen, #jogress-screen, #equip-manage-screen {
+    display: none;
 }
 
 .stats {
+    display: inline-flex;
+    flex-direction: column;
     width: 45%;
-    text-align: center;
-    background: #2a2a4e;
+    max-width: 500px;
+    margin: 8px;
+    font-size: 16px;
+    background: rgba(0, 0, 0, 0.5);
     padding: 15px;
     border-radius: 8px;
+    border: 1px solid #66CC99;
+}
+
+#battle-screen .stats-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    flex-wrap: wrap;
 }
 
 .stats img {
-    max-width: 100px;
-    border: 2px solid #00b7eb;
-    border-radius: 5px;
+    width: 100px;
+    height: 100px;
+    border: 2px solid #A100A1;
+    border-radius: 8px;
+    background: transparent;
+    object-fit: contain;
+    mix-blend-mode: screen;
+}
+
+#battle-log {
+    max-height: 30vh;
+    min-height: 100px;
+    width: 600px;
+    overflow-y: auto;
+    border: 1px solid #66CC99;
+    padding: 10px;
+    margin: 10px 0;
+    background: rgba(0, 0, 0, 0.7);
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.3;
+    color: #66CC99;
+}
+
+button {
+    padding: 8px 14px;
+    margin: 4px;
+    cursor: pointer;
+    background-color: #A100A1;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 5px rgba(161, 0, 161, 0.5);
+}
+
+button:hover {
+    background-color: #C200C2;
+    box-shadow: 0 0 10px #66CC99;
+}
+
+button:disabled {
+    background-color: #4A4A4A;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 #xp-bar {
     width: 100%;
-    height: 12px;
-    background: #333;
-    margin-top: 8px;
-    border-radius: 5px;
+    height: 18px;
+    background: #1A2A55;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 8px 0;
+    border: 1px solid #66CC99;
 }
 
 #xp-progress {
     height: 100%;
-    background: linear-gradient(to right, #00ff00, #00b7eb);
+    background: #66CC99;
     width: 0;
-    border-radius: 5px;
+    transition: width 0.5s;
+    box-shadow: 0 0 10px #66CC99;
+}
+
+#menu-screen h2, #shop-screen h2, #jogress-screen h2, #equip-manage-screen h2 {
+    color: #66CC99;
+    font-size: 20px;
+    text-shadow: 0 0 5px #66CC99;
+}
+
+#afk-status {
+    margin: 8px 0;
+    font-style: italic;
+    font-size: 14px;
+    color: #A100A1;
+}
+
+#digimon-slots {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.slot {
+    width: 130px;
+    margin: 8px;
+    text-align: center;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.slot.active {
+    border-color: #66CC99;
+    background: rgba(102, 204, 153, 0.2);
+}
+
+.slot img {
+    width: 70px;
+    height: 70px;
+    cursor: pointer;
+    background: transparent;
+    object-fit: contain;
+    mix-blend-mode: screen;
+}
+
+#bit-balance {
+    font-weight: bold;
+    margin: 12px 0;
+    color: #66CC99;
+}
+
+#heal-toggle {
+    margin: 8px;
+    font-size: 14px;
+    color: #FFFFFF;
+}
+
+#enemy-stage-select, #jogress-digimon1, #jogress-digimon2 {
+    padding: 10px;
+    margin: 4px;
+    background-color: #1A2A55;
+    border: 2px solid #A100A1;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #FFFFFF;
+}
+
+#enemy-stage-select:hover, #jogress-digimon1:hover, #jogress-digimon2:hover {
+    background-color: #2A3A65;
+    border-color: #66CC99;
+}
+
+.attack-bonus, .hp-bonus {
+    font-size: 13px;
+}
+
+.attack-bonus .shop-bonus, .hp-bonus .shop-bonus {
+    color: #66CC99;
+}
+
+.attack-bonus .rebirth-bonus, .hp-bonus .rebirth-bonus {
+    color: #A100A1;
+}
+
+.attack-bonus .equip-bonus, .hp-bonus .equip-bonus {
+    color: #FFFFFF;
 }
 
 #timing-bar {
-    width: 100%;
-    height: 25px;
-    background: #333;
+    width: 50vw;
+    max-width: 600px;
+    height: 22px;
+    background: #1A2A55;
     position: relative;
-    margin-top: 15px;
+    margin: 10px auto;
+    border: 2px solid #66CC99;
     border-radius: 5px;
+    overflow: hidden;
+}
+
+#timing-bar .power-line {
+    position: absolute;
+    width: 2px;
+    height: 100%;
+    background: #FFFFFF;
+    opacity: 0.7;
+    top: 0;
+}
+
+#timing-bar .power-line-20 { left: 20%; }
+#timing-bar .power-line-40 { left: 40%; }
+#timing-bar .power-line-60 { left: 60%; }
+#timing-bar .power-line-80 { left: 80%; }
+#timing-bar .power-line-90 { left: 90%; }
+#timing-bar .power-line-95 { left: 95%; }
+
+#timing-bar::after {
+    content: '';
+    position: absolute;
+    width: 5%;
+    height: 100%;
+    left: 90%;
+    background: rgba(161, 0, 161, 0.5);
+    z-index: 0;
 }
 
 #marker {
+    width: 0;
     height: 100%;
-    background: linear-gradient(to right, #ff4500, #ff8c00);
+    background: linear-gradient(to right, #A100A1 0%, #66CC99 50%, #FFFFFF 80%, #66CC99 90%, #A100A1 95%, #A100A1 100%);
     position: absolute;
-    top: 0;
     left: 0;
-    border-radius: 5px;
+    top: 0;
+    z-index: 1;
+    transition: width 0.1s ease-out;
+    box-shadow: 0 0 10px #66CC99;
 }
-
-.power-line {
-    position: absolute;
-    height: 100%;
-    width: 3px;
-    background: #fff;
-    opacity: 0.7;
-}
-
-.power-line-20 { left: 20%; }
-.power-line-40 { left: 40%; }
-.power-line-60 { left: 60%; }
-.power-line-80 { left: 80%; }
-.power-line-90 { left: 90%; }
-.power-line-95 { left: 95%; }
 
 #precision-field {
-    width: 350px;
-    height: 250px;
-    background: #1e1e3e;
+    width: 600px;
+    height: 30vh;
+    min-height: 100px;
     position: relative;
-    margin: 15px auto;
-    border: 2px solid #00b7eb;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #66CC99;
     border-radius: 5px;
+    overflow: hidden;
+    cursor: crosshair;
 }
 
 #target, #target2 {
-    width: 30px;
-    height: 30px;
-    background: #ff4500;
+    width: 25px;
+    height: 25px;
     border-radius: 50%;
+    background: radial-gradient(circle, 
+        #FF0000 3px, 
+        #FF00FF 4.9px, 
+        #66CC99 6.8px, 
+        #00FF00 8.7px, 
+        #FFFF00 10.6px, 
+        #A100A1 12.5px);
     position: absolute;
-    border: 2px solid #fff;
+    z-index: 1;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    border: 1px solid #FFFFFF;
 }
 
-.shop-item {
-    margin: 15px 0;
-    padding: 10px;
-    background: #2a2a4e;
-    border-radius: 5px;
+#attack-button {
+    font-size: 18px;
+    padding: 10px 20px;
+    margin: 10px 0;
+    background-color: #A100A1;
+    transition: all 0.2s;
+    box-shadow: 0 0 10px rgba(161, 0, 161, 0.7);
+}
+
+#attack-button:disabled {
+    background-color: #4A4A4A;
+    transform: none;
+    box-shadow: none;
+}
+
+#attack-button:active:not(:disabled) {
+    transform: scale(0.95);
+    box-shadow: 0 0 15px #66CC99;
 }
 
 .equip-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 12px 0;
 }
 
 .equip-item {
-    border: 2px solid #00b7eb;
-    padding: 15px;
-    width: 220px;
-    text-align: center;
-    background: #2a2a4e;
-    border-radius: 8px;
+    border: 1px solid #66CC99;
+    padding: 12px;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    text-align: left;
+    cursor: pointer;
+    color: #FFFFFF;
 }
 
 .equip-item.selected {
-    border-color: #ff4500;
-    background: #3a3a6e;
+    border-color: #A100A1;
+    background: rgba(161, 0, 161, 0.2);
 }
 
-button {
-    margin: 5px;
-    padding: 8px 16px;
-    background: #00b7eb;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background 0.2s;
+.equip-item button {
+    margin-top: 8px;
+    margin-right: 8px;
 }
 
-button:hover {
-    background: #ff4500;
-}
-
-button:disabled {
-    background: #666;
-    cursor: not-allowed;
-}
-
-p {
-    margin: 5px 0;
+@media (max-width: 1366px) {
+    #game-container {
+        padding: 10px;
+    }
+    .stats {
+        width: 100%;
+        max-width: 400px;
+        margin: 5px;
+        font-size: 14px;
+    }
+    .stats img {
+        width: 80px;
+        height: 80px;
+    }
+    #battle-log {
+        width: 90%;
+        max-height: 25vh;
+        font-size: 12px;
+    }
+    button, #enemy-stage-select, #jogress-digimon1, #jogress-digimon2 {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    #attack-button {
+        font-size: 16px;
+        padding: 8px 16px;
+    }
+    #timing-bar {
+        width: 80vw;
+        max-width: 400px;
+    }
+    #precision-field {
+        width: 90%;
+        height: 200px;
+    }
+    #target, #target2 {
+        width: 20px;
+        height: 20px;
+        background: radial-gradient(circle, 
+            #FF0000 2.4px, 
+            #FF00FF 3.92px, 
+            #66CC99 5.44px, 
+            #00FF00 6.96px, 
+            #FFFF00 8.48px, 
+            #A100A1 10px);
+    }
+    .battle-interface {
+        flex-direction: column;
+        align-items: center;
+    }
+    .slot {
+        width: 110px;
+    }
+    .equip-grid {
+        grid-template-columns: 1fr;
+    }
 }

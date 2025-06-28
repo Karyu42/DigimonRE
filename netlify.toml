@@ -2,14 +2,10 @@
   publish = "."
   command = ""
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/api/*"
-  to = "https://digimon-api.com/api/v1/:splat"
-  status = 200
-  force = true
-  headers = { "Access-Control-Allow-Origin" = "*" }
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' https://digi-api.com; connect-src 'self' https://digi-api.com"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"

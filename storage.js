@@ -1,158 +1,169 @@
+const SAVE_VERSION = "1.0.1";
 const STORAGE_KEY = "digimonRPG_save";
+const API_BASE_URL = "https://digi-api.com/api/v1";
+const FALLBACK_SPRITE = "https://digi-api.com/images/default.png";
+let isInitialLoad = true;
 
-const XP_CAPS = {
-    Rookie: 100,
-    Champion: 200,
-    Ultimate: 300,
-    Mega: 400,
-    Ultra: 500
-};
-
-function resetState(isInitial = false) {
-    window.state = window.state || {};
-    state.digimonSlots = [null, null, null, null, null];
-    state.activeDigimonIndex = null;
-    state.bit = 1000; // Align with config.js initial BIT
-    state.jogressShards = 0;
-    state.opponent = null;
-    state.battleActive = false;
-    state.isAttackDisabled = false;
-    state.selectedEnemyStage = "Rookie";
-    state.combatMode = "charging";
-    state.healOnVictory = false;
-    state.ringInventory = [
-        {
-            name: "Starter Ring",
-            baseStats: { attack: 1, hp: 5 },
-            effects: [{ type: "maxHp", value: 5 }]
-        }
-    ];
-    state.equipmentSlots = [null, null, null, null, null];
-    state.currentEquipSlot = 0;
-    state.globalAfkInterval = null;
-    state.enemyAttackIntervalId = null;
-    state.markerPosition = 0;
-    state.markerDirection = 1;
-    state.lastAttackTime = 0;
-    state.consecutiveCriticalHits = 0;
-    state.enemyStunned = false;
-    state.targetPositions = {};
-    state.animationFrame = null;
-    state.animationStartTime = null;
-    state.afkModes = [null, null, null, null, null];
-
-    if (!isInitial) {
-        saveProgress(true);
-    }
-}
-
-function saveProgress(autoSave = false) {
+function saveProgress(logToGame = false) {
+    if (isInitialLoad) return;
     try {
-        const saveData = JSON.stringify({
-            digimonSlots: state.digimonSlots,
-            activeDigimonIndex: state.activeDigimonIndex,
-            bit: state.bit,
-            jogressShards: state.jogressShards,
-            selectedEnemyStage: state.selectedEnemyStage,
-            combatMode: state.combatMode,
-            healOnVictory: state.healOnVictory,
-            ringInventory: state.ringInventory,
-            equipmentSlots: state.equipmentSlots,
-            currentEquipSlot: state.currentEquipSlot,
-            afkModes: state.afkModes
-        });
-        localStorage.setItem(STORAGE_KEY, saveData);
-        if (!autoSave) {
-            logMessage("Game saved successfully!");
-        }
-    } catch (error) {
-        console.error("Error saving progress:", error);
-        logMessage("Failed to save game progress.");
-    }
-}
-
-function loadFromLocalStorage() {
-    try {
-        const saveData = localStorage.getItem(STORAGE_KEY);
-        if (saveData) {
-            const parsed = JSON.parse(saveData);
-            state.digimonSlots = parsed.digimonSlots || [null, null, null, null, null];
-            state.activeDigimonIndex = parsed.activeDigimonIndex || null;
-            state.bit = parsed.bit || 1000;
-            state.jogressShards = parsed.jogressShards || 0;
-            state.selectedEnemyStage = parsed.selectedEnemyStage || "Rookie";
-            state.combatMode = parsed.combatMode || "charging";
-            state.healOnVictory = parsed.healOnVictory || false;
-            state.ringInventory = parsed.ringInventory || [];
-            state.equipmentSlots = parsed.equipmentSlots || [null, null, null, null, null];
-            state.currentEquipSlot = parsed.currentEquipSlot || 0;
-            state.afkModes = parsed.afkModes || [null, null, null, null, null];
-            logMessage("Game loaded successfully!");
-        }
-    } catch (error) {
-        console.error("Error loading progress:", error);
-        logMessage("Failed to load game progress.");
+        state.lastSavedTime = Date.now();
+        state.version = SAVE_VERSION;
+        const safeState = {
+            ...state,
+            globalAfkInterval: null,
+            animationFrame: null,
+            enemyAttackIntervalId: null,
+            opponent: null
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(safeState));
+        if (logToGame) logMessage("Game saved!");
+    } catch (e) {
+        logMessage("Failed to save progress. Storage may be full.");
     }
 }
 
 function exportSave() {
     try {
-        const saveData = localStorage.getItem(STORAGE_KEY);
-        if (saveData) {
-            const blob = new Blob([saveData], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "digimonRPG_save.json";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            logMessage("Save file exported successfully!");
-        } else {
+        const stateString = localStorage.getItem(STORAGE_KEY);
+        if (!stateString) {
             logMessage("No save data to export!");
+            return;
         }
-    } catch (error) {
-        console.error("Error exporting save:", error);
-        logMessage("Failed to export save file.");
+        const blob = new Blob([stateString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'digimonRPG_save.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        logMessage("Save file exported!");
+    } catch (e) {
+        logMessage("Failed to export save.");
     }
 }
 
 function loadProgress(file) {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const parsed = JSON.parse(e.target.result);
-            state.digimonSlots = parsed.digimonSlots || [null, null, null, null, null];
-            // Validate Digimon data against API or fallback
-            for (let i = 0; i < state.digimonSlots.length; i++) {
-                if (state.digimonSlots[i]) {
-                    const digimonData = await fetchDigimon(state.digimonSlots[i].name);
-                    if (digimonData) {
-                        state.digimonSlots[i].sprite = digimonData.sprite;
-                        state.digimonSlots[i].stage = digimonData.stage;
-                    }
-                }
+    try {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const loadedState = JSON.parse(event.target.result);
+                applyLoadedState(loadedState);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(loadedState));
+                logMessage("Progress loaded and saved!");
+            } catch (e) {
+                logMessage("Failed to load progress. Invalid save file.");
             }
-            state.activeDigimonIndex = parsed.activeDigimonIndex || null;
-            state.bit = parsed.bit || 1000;
-            state.jogressShards = parsed.jogressShards || 0;
-            state.selectedEnemyStage = parsed.selectedEnemyStage || "Rookie";
-            state.combatMode = parsed.combatMode || "charging";
-            state.healOnVictory = parsed.healOnVictory || false;
-            state.ringInventory = parsed.ringInventory || [];
-            state.equipmentSlots = parsed.equipmentSlots || [null, null, null, null, null];
-            state.currentEquipSlot = parsed.currentEquipSlot || 0;
-            state.afkModes = parsed.afkModes || [null, null, null, null, null];
-            saveProgress(true);
-            await updateUI();
-            logMessage("Save file imported successfully!");
-        } catch (error) {
-            console.error("Error importing save:", error);
-            logMessage("Failed to import save file.");
+        };
+        reader.readAsText(file);
+    } catch (e) {
+        logMessage("Failed to load progress.");
+    }
+}
+
+function loadFromLocalStorage() {
+    try {
+        const stateString = localStorage.getItem(STORAGE_KEY);
+        if (stateString) {
+            const loadedState = JSON.parse(stateString);
+            applyLoadedState(loadedState);
+            logMessage("Progress loaded from auto-save!");
         }
+    } catch (e) {
+        logMessage("Failed to load auto-save. Starting new game.");
+    }
+}
+
+async function validateDigimon(digimon) {
+    if (!digimon || typeof digimon !== 'object') return null;
+    const apiDigimon = await fetchDigimonByName(digimon.name);
+    const baseStats = apiDigimon?.baseStats || { hp: 100, attack: 20 };
+    const sprite = apiDigimon?.images?.[0]?.href || FALLBACK_SPRITE;
+
+    return {
+        name: digimon.name,
+        level: Number.isInteger(digimon.level) && digimon.level > 0 ? digimon.level : 1,
+        hp: typeof digimon.hp === 'number' && digimon.hp >= 0 ? digimon.hp : baseStats.hp,
+        maxHp: typeof digimon.maxHp === 'number' && digimon.maxHp >= 0 ? digimon.maxHp : baseStats.hp,
+        attack: typeof digimon.attack === 'number' && digimon.attack >= 0 ? digimon.attack : baseStats.attack,
+        xp: typeof digimon.xp === 'number' && digimon.xp >= 0 ? digimon.xp : 0,
+        totalXp: typeof digimon.totalXp === 'number' && digimon.totalXp >= 0 ? digimon.totalXp : 0,
+        xpNext: typeof digimon.xpNext === 'number' && digimon.xpNext >= 0 ? digimon.xpNext : 100,
+        sprite: validateSpriteUrl(digimon.sprite) || sprite,
+        evolutions: Array.isArray(digimon.evolutions) ? digimon.evolutions : apiDigimon?.evolutions || [],
+        shopBonuses: {
+            attack: typeof digimon.shopBonuses?.attack === 'number' ? digimon.shopBonuses.attack : 0,
+            hp: typeof digimon.shopBonuses?.hp === 'number' ? digimon.shopBonuses.hp : 0
+        },
+        rebirthBonuses: {
+            attack: typeof digimon.rebirthBonuses?.attack === 'number' ? digimon.rebirthBonuses.attack : 0,
+            hp: typeof digimon.rebirthBonuses?.hp === 'number' ? digimon.rebirthBonuses.hp : 0
+        },
+        stage: digimon.stage || apiDigimon?.level || "Rookie"
     };
-    reader.readAsText(file);
+}
+
+function validateRing(ring) {
+    if (!ring || typeof ring !== 'object' || !ring.name || !ring.baseStats || !Array.isArray(ring.effects)) {
+        return null;
+    }
+    return {
+        name: ring.name,
+        baseStats: {
+            attack: typeof ring.baseStats.attack === 'number' && ring.baseStats.attack >= 0 ? ring.baseStats.attack : 0,
+            hp: typeof ring.baseStats.hp === 'number' && ring.baseStats.hp >= 0 ? ring.baseStats.hp : 0
+        },
+        effects: ring.effects.filter(e => 
+            e && ['chargeSpeed', 'attackDamage', 'maxHp', 'trainingExp', 'farmingGain', 'trainingCost', 'nullifyDamage'].includes(e.type) &&
+            typeof e.value === 'number'
+        )
+    };
+}
+
+function resetState(skipSave = false) {
+    if (state.globalAfkInterval) {
+        clearInterval(state.globalAfkInterval);
+    }
+    state = {
+        digimonSlots: Array(10).fill(null),
+        activeDigimonIndex: null,
+        opponent: null,
+        bit: 1000,
+        jogressShards: 0,
+        afkModes: Array(10).fill(null),
+        globalAfkInterval: null,
+        healOnVictory: false,
+        selectedEnemyStage: "Rookie",
+        combatMode: "charging",
+        lastSavedTime: Date.now(),
+        battleActive: false,
+        markerPosition: 0,
+        markerDirection: 1,
+        animationFrame: null,
+        targetZonePosition: 0,
+        lastAttackTime: 0,
+        enemyAttackIntervalId: null,
+        isAttackDisabled: false,
+        animationStartTime: null,
+        consecutiveCriticalHits: 0,
+        enemyStunned: false,
+        equipmentSlots: Array(5).fill(null),
+        ringInventory: [
+            {
+                name: "Starter Ring",
+                baseStats: { attack: 1, hp: 5 },
+                effects: [{ type: "maxHp", value: 5 }]
+            }
+        ],
+        currentEquipSlot: null,
+        version: SAVE_VERSION
+    };
+    if (!skipSave && !isInitialLoad) {
+        saveProgress();
+    }
 }
 
 function buyJogressShards() {
@@ -162,54 +173,87 @@ function buyJogressShards() {
     }
     state.bit -= 2000;
     state.jogressShards += 1;
-    logMessage("Purchased 1 Jogress Shard!");
+    logMessage(`Bought a Jogress Shard! Current shards: ${state.jogressShards}`);
     updateUI();
     saveProgress(true);
 }
 
-function setAfkMode(slotIndex, mode) {
+function setAfkMode(slotIndex, mode, fromLoad = false) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) {
-        logMessage(`No Digimon in slot ${slotIndex + 1} to set AFK mode!`);
+        logMessage(`No Digimon in slot ${slotIndex + 1} to set AFK mode.`);
         return;
     }
 
-    if (mode === "cycle") {
-        if (state.afkModes[slotIndex] === "training") {
-            state.afkModes[slotIndex] = "farming";
-            logMessage(`${digimon.name} set to AFK Farming mode.`);
-        } else if (state.afkModes[slotIndex] === "farming") {
-            state.afkModes[slotIndex] = null;
-            logMessage(`${digimon.name} AFK mode turned off.`);
-        } else {
-            state.afkModes[slotIndex] = "training";
-            logMessage(`${digimon.name} set to AFK Training mode.`);
-        }
-    } else {
-        state.afkModes[slotIndex] = mode;
-        logMessage(`${digimon.name} set to AFK ${mode ? mode.charAt(0).toUpperCase() + mode.slice(1) : "Off"} mode.`);
-    }
+    const currentMode = state.afkModes[slotIndex];
+    let newMode = mode === 'cycle' ? (currentMode === null ? 'training' : currentMode === 'training' ? 'farming' : null) : mode;
+    state.afkModes[slotIndex] = newMode;
 
-    if (state.afkModes.some(m => m)) {
-        if (!state.globalAfkInterval) {
-            state.globalAfkInterval = setInterval(() => {
-                state.afkModes.forEach((mode, index) => {
-                    if (mode === "training") {
-                        gainXP(index, 10);
-                    } else if (mode === "farming") {
-                        state.bit = Math.min(Math.max(0, state.bit + 10), Number.MAX_SAFE_INTEGER);
-                        updateUI();
-                    }
-                });
-                saveProgress(true);
-            }, 1000);
-        }
-    } else if (state.globalAfkInterval) {
+    if (state.globalAfkInterval) {
         clearInterval(state.globalAfkInterval);
         state.globalAfkInterval = null;
     }
 
-    saveProgress(true);
+    if (state.afkModes.some(m => m !== null)) {
+        state.globalAfkInterval = setInterval(() => {
+            state.digimonSlots.forEach((digimon, index) => {
+                if (digimon && state.afkModes[index] === 'training') {
+                    const trainingCostReduction = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'trainingCost')?.value || 0), 0) / 100;
+                    const costPerTick = 50 * (1 + trainingCostReduction);
+                    if (state.bit >= costPerTick) {
+                        state.bit -= costPerTick;
+                        const trainingBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'trainingExp')?.value || 0), 0) / 100;
+                        gainXP(index, 100 * (1 + trainingBonus));
+                    } else {
+                        state.afkModes[index] = null;
+                        logMessage(`${digimon.name} stopped training due to insufficient BIT.`);
+                    }
+                } else if (digimon && state.afkModes[index] === 'farming') {
+                    const farmingBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'farmingGain')?.value || 0), 0) / 100;
+                    state.bit = Math.min(state.bit + digimon.level * 5 * (1 + farmingBonus), Number.MAX_SAFE_INTEGER);
+                }
+            });
+            updateUI();
+        }, 10000);
+    }
+
+    if (!fromLoad && !isInitialLoad) {
+        logMessage(`${digimon.name} set to ${newMode || 'no'} AFK mode.`);
+        updateMenu();
+        saveProgress();
+    }
 }
 
-console.log("storage.js loaded successfully.");
+function logMessage(message) {
+    const battleScreen = document.getElementById("battle-screen");
+    const log = document.getElementById("battle-log");
+    if (battleScreen?.style.display === "block" && log) {
+        const p = document.createElement("p");
+        p.textContent = message;
+        log.appendChild(p);
+        while (log.children.length > 50) {
+            log.removeChild(log.firstChild);
+        }
+        log.scrollTop = log.scrollHeight;
+    }
+}
+
+async function fetchDigimonByName(name) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/digimon?name=${encodeURIComponent(name)}&exact=true`);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        return data.content?.[0] || null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function validateSpriteUrl(url) {
+    try {
+        new URL(url);
+        return url;
+    } catch {
+        return FALLBACK_SPRITE;
+    }
+}

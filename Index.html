@@ -42,20 +42,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Digimon RPG: Battle, train, and evolve your Digimon in this web-based adventure game.">
+    <meta name="author" content="Your Name">
     <title>Digimon RPG</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <script src="data.js"></script>
-    <script src="storage.js"></script>
-    <script src="digimon.js"></script>
-    <script src="equipment.js"></script>
-    <script src="battle.js"></script>
-    <script src="ui.js"></script>
 </head>
 <body>
     <div id="game-container">
         <div id="menu-screen">
             <h2>Digimon Status</h2>
-            <p id="bit-amount">BIT: 0</p> | <p id="jogress-shards">Jogress Shards: 0</p>
+            <p id="bit-balance">BIT: <span id="bit-amount">0</span> | Jogress Shards: <span id="jogress-shards">0</span></p>
             <p>Active Digimon: <span id="menu-player-name">None</span> (Level: <span id="menu-player-level">0</span>)</p>
             <p id="afk-status">Not training</p>
             <div id="digimon-slots"></div>
@@ -66,50 +63,39 @@
                 <option value="Mega">Mega</option>
                 <option value="Ultra">Ultra</option>
             </select>
-            <p>Combat Mode: 
-                <select id="combat-mode-select" onchange="toggleCombatMode()">
-                    <option value="charging">Charging Bar</option>
-                    <option value="precision">Precision Strike</option>
-                </select>
-            </p>
-            <div>
-                <button onclick="startBattle(false)">Start Normal Fight</button>
-                <button onclick="startBattle(true)">Start Boss Fight</button>
-            </div>
-            <div>
-                <button onclick="goToShop()">Go to Shop</button>
-                <button onclick="toggleJogressMenu()">Jogress Menu</button>
-                <button onclick="showEquipMenu()">Manage Equipment</button>
-                <button onclick="resetGame()">Reset Game</button>
-                <button onclick="saveProgress(true)">Auto-Save Game</button>
-                <button onclick="exportSave()">Export Save</button>
-                <input type="file" id="load-game-input" accept=".json">
-                <button onclick="handleLoadGame(document.getElementById('load-game-input').files[0])">Import Save</button>
-            </div>
+            <p>Combat Mode: <select id="combat-mode-select">
+                <option value="charging">Charging Bar</option>
+                <option value="precision">Precision Strike</option>
+            </select></p>
+            <button onclick="startBattle()">Start Normal Fight</button>
+            <button onclick="startBattle(true)">Start Boss Fight</button>
+            <button onclick="goToShop()">Go to Shop</button>
+            <button onclick="toggleJogressMenu()">Jogress Menu</button>
+            <button onclick="showEquipMenu()">Manage Equipment</button>
+            <button onclick="resetGame()">Reset Game</button>
+            <button onclick="saveProgress(true)">Auto-Save Game</button>
+            <button onclick="exportSave()">Export Save</button>
+            <input type="file" id="load-game-input" accept=".json" onchange="handleLoadGame(this.files[0])">
         </div>
+
         <div id="jogress-screen">
             <h2>Jogress Menu</h2>
             <p>Select two Digimon to Jogress:</p>
-            <select id="jogress-digimon1">
-                <option value="">Select First Digimon</option>
-            </select>
-            <select id="jogress-digimon2">
-                <option value="">Select Second Digimon</option>
-            </select>
-            <div>
-                <button onclick="performJogress()">Perform Jogress</button>
-                <button onclick="showMenu()">Back to Menu</button>
-            </div>
+            <select id="jogress-digimon1"><option value="">Select First Digimon</option></select>
+            <select id="jogress-digimon2"><option value="">Select Second Digimon</option></select>
+            <button onclick="performJogress()">Perform Jogress</button>
+            <button onclick="showMenu()">Back to Menu</button>
         </div>
+
         <div id="equip-manage-screen">
-            <h2>Equipment Management</h2>
             <div id="equip-manage-content"></div>
             <button onclick="showMenu()">Back to Menu</button>
         </div>
+
         <div id="battle-screen">
             <div class="battle-interface">
                 <div class="stats">
-                    <h3>Player: <span id="player-name">None</span></h3>
+                    <p>Player: <span id="player-name">None</span></p>
                     <img id="player-sprite" src="" alt="Player Digimon">
                     <p>Level: <span id="player-level">0</span></p>
                     <p>HP: <span id="player-hp">0</span>/<span id="player-max-hp">0</span> <span id="player-hp-bonus"></span></p>
@@ -118,15 +104,14 @@
                     <div id="xp-bar"><div id="xp-progress"></div></div>
                 </div>
                 <div class="stats">
-                    <h3>Opponent: <span id="opponent-name">None</span></h3>
+                    <p>Opponent: <span id="opponent-name">None</span></p>
                     <img id="opponent-sprite" src="" alt="Opponent Digimon">
                     <p>Level: <span id="opponent-level">0</span></p>
                     <p>HP: <span id="opponent-hp">0</span>/<span id="opponent-max-hp">0</span></p>
                     <p>Attack: <span id="opponent-attack">0</span></p>
                 </div>
             </div>
-            <input type="checkbox" id="heal-toggle" onchange="toggleHealing()"> Heal on Victory (1 BIT = 5 HP)
-            <div id="battle-log"></div>
+            <p><input type="checkbox" id="heal-toggle" onchange="toggleHealing()"> Heal on Victory (1 BIT = 5 HP)</p>
             <div id="timing-bar">
                 <div class="power-line power-line-20"></div>
                 <div class="power-line power-line-40"></div>
@@ -143,11 +128,13 @@
             <div id="attack-button-container">
                 <button id="attack-button" onclick="attack()">Attack</button>
             </div>
-            <button onclick="endBattle()">Menu</button>
+            <div id="battle-log"></div>
+            <button onclick="showMenu()">Menu</button>
         </div>
+
         <div id="shop-screen">
             <h2>Shop</h2>
-            <p id="shop-bit-amount">BIT: 0</p> | <p id="shop-jogress-shards">Jogress Shards: 0</p>
+            <p>BIT: <span id="shop-bit-amount">0</span> | Jogress Shards: <span id="shop-jogress-shards">0</span></p>
             <div class="shop-item">
                 <p>Jogress Shard (2000 BIT)</p>
                 <button onclick="buyJogressShards()">Buy</button>
@@ -167,5 +154,12 @@
             <button onclick="showMenu()">Back to Menu</button>
         </div>
     </div>
+    <script src="config.js"></script>
+    <script src="data.js"></script>
+    <script src="storage.js"></script>
+    <script src="digimon.js"></script>
+    <script src="battle.js"></script>
+    <script src="ui.js"></script>
+    <script src="equipment.js"></script>
 </body>
 </html>

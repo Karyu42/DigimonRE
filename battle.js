@@ -1,5 +1,4 @@
-async function createOpponent(isBoss) {
-    console.log("Creating opponent for stage:", state.selectedEnemyStage, "isBoss:", isBoss);
+async function createOpponent(isBoss = false) {
     const activeDigimon = state.digimonSlots[state.activeDigimonIndex];
     if (!activeDigimon) {
         logMessage("No active Digimon selected! Please select a Digimon.");
@@ -7,53 +6,48 @@ async function createOpponent(isBoss) {
     }
 
     const stage = state.selectedEnemyStage;
-    let stageMultiplier = 1;
-    let bitMultiplier = 1;
-    if (stage === "Champion") {
-        stageMultiplier = 2;
-        bitMultiplier = 2;
-    } else if (stage === "Ultimate") {
-        stageMultiplier = 4;
-        bitMultiplier = 4;
-    } else if (stage === "Mega") {
-        stageMultiplier = 16;
-        bitMultiplier = 8;
-    } else if (stage === "Ultra") {
-        stageMultiplier = 200;
-        bitMultiplier = 12;
+    const levelMap = {
+        Rookie: "Rookie",
+        Champion: "Champion",
+        Ultimate: "Ultimate",
+        Mega: "Mega",
+        Ultra: "Mega" // Ultra maps to Mega for API compatibility
+    };
+    const apiLevel = levelMap[stage] || "Rookie";
+    let possibleDigimon = await fetchDigimonByLevel(apiLevel);
+    
+    if (stage === "Ultra") {
+        possibleDigimon = [
+            { name: "Omnimon", baseStats: { hp: 300, attack: 60 }, images: [{ href: "https://digi-api.com/images/omnimon.jpg" }], level: "Mega" },
+            { name: "Imperialdramon", baseStats: { hp: 280, attack: 60 }, images: [{ href: "https://digi-api.com/images/imperialdramon.jpg" }], level: "Mega" }
+        ];
     }
 
-    try {
-        const response = await fetch(`/api/digimon?level=${stage}`);
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-        const possibleDigimon = (await response.json()).filter(d => normalizeStage(d.level) === stage);
-        if (!possibleDigimon.length) throw new Error(`No ${stage} Digimon found`);
-        const selectedDigimon = possibleDigimon[Math.floor(Math.random() * possibleDigimon.length)];
-        console.log("Selected opponent:", selectedDigimon.name);
-
-        const level = Math.max(1, activeDigimon.level + Math.floor(Math.random() * 3) - 1);
-        const hpMultiplier = isBoss ? 100 : 1;
-        const attackMultiplier = isBoss ? 0.5 : 1;
-        const baseStats = BASE_STATS[stage] || BASE_STATS.Rookie;
-
-        return {
-            name: selectedDigimon.name + (isBoss ? " (Boss)" : ""),
-            level,
-            hp: (baseStats.hp + (level - 1) * 10) * stageMultiplier * hpMultiplier,
-            maxHp: (baseStats.hp + (level - 1) * 10) * stageMultiplier * hpMultiplier,
-            attack: (baseStats.attack + (level - 1) * 2) * stageMultiplier * attackMultiplier,
-            sprite: selectedDigimon.images[0]?.href || `https://via.placeholder.com/60?text=${encodeURIComponent(selectedDigimon.name)}`,
-            stage,
-            bitDrop: isBoss ? 0 : Math.floor(Math.sqrt(level) * 50 * bitMultiplier),
-            xpDrop: isBoss ? 0 : 50 + level * 10
-        };
-    } catch (error) {
-        console.error("Error fetching opponent:", error);
-        logMessage(`Failed to create ${stage} opponent due to API error.`);
-        return null;
+    if (possibleDigimon.length === 0) {
+        possibleDigimon = [{ name: "Agumon", baseStats: { hp: 100, attack: 20 }, images: [{ href: "https://digi-api.com/images/agumon.jpg" }], level: "Rookie" }];
     }
+
+    const selectedDigimon = possibleDigimon[Math.floor(Math.random() * possibleDigimon.length)];
+    const level = activeDigimon.level + Math.floor(Math.random() * 3) - 1;
+    const stageMultiplier = { Rookie: 1, Champion: 2, Ultimate: 4, Mega: 16, Ultra: 200 }[stage] || 1;
+    const bitMultiplier = { Rookie: 1, Champion: 2, Ultimate: 4, Mega: 8, Ultra: 12 }[stage] || 1;
+    const hpMultiplier = isBoss ? 100 : 1;
+    const attackMultiplier = isBoss ? 0.5 : 1;
+
+    return {
+        name: selectedDigimon.name + (isBoss ? " (Boss)" : ""),
+        level: Math.max(1, level),
+        hp: (selectedDigimon.baseStats?.hp || 100 + (level - 1) * 10) * stageMultiplier * hpMultiplier,
+        maxHp: (selectedDigimon.baseStats?.hp || 100 + (level - 1) * 10) * stageMultiplier * hpMultiplier,
+        attack: (selectedDigimon.baseStats?.attack || 20 + (level - 1) * 2) * stageMultiplier * attackMultiplier,
+        sprite: validateSpriteUrl(selectedDigimon.images?.[0]?.href),
+        stage: stage,
+        bitDrop: isBoss ? 0 : Math.floor(Math.sqrt(level) * 50 * bitMultiplier),
+        xpDrop: isBoss ? 0 : 50 + level * 10
+    };
 }
 
+// Rest of the battle.js remains unchanged
 function spawnNewTarget(targetId) {
     const field = document.getElementById("precision-field");
     const target = document.getElementById(targetId);
@@ -63,17 +57,14 @@ function spawnNewTarget(targetId) {
     const targetSize = 25;
     const maxX = fieldWidth - targetSize;
     const maxY = fieldHeight - targetSize;
-    const position = {
-        x: Math.random() * maxX,
-        y: Math.random() * maxY
-    };
+    const position = { x: Math.random() * maxX, y: Math.random() * maxY };
     state.targetPositions = state.targetPositions || {};
     state.targetPositions[targetId] = position;
     target.style.left = `${position.x}px`;
     target.style.top = `${position.y}px`;
 }
 
-async function performAttack(isAuto, clickX, clickY) {
+function performAttack(isAuto = false, clickX = null, clickY = null) {
     const player = state.digimonSlots[state.activeDigimonIndex];
     if (!player || !state.battleActive || player.hp <= 0 || !state.opponent || state.opponent.hp <= 0) {
         logMessage("Cannot attack: invalid battle state.");
@@ -101,30 +92,17 @@ async function performAttack(isAuto, clickX, clickY) {
         const markerWidth = parseFloat(marker.style.width) || 0;
         const fillPercentage = markerWidth / barWidth;
 
-        if (fillPercentage < 0.2) {
-            damageMultiplier = 0.3;
-            state.consecutiveCriticalHits = 0;
-        } else if (fillPercentage < 0.4) {
-            damageMultiplier = 1.0;
-            state.consecutiveCriticalHits = 0;
-        } else if (fillPercentage < 0.6) {
-            damageMultiplier = 1.5;
-            state.consecutiveCriticalHits = 0;
-        } else if (fillPercentage < 0.8) {
-            damageMultiplier = 2.0;
-            state.consecutiveCriticalHits = 0;
-        } else if (fillPercentage < 0.9) {
-            damageMultiplier = 3.0;
-            state.consecutiveCriticalHits = 0;
-        } else if (fillPercentage < 0.95) {
+        if (fillPercentage < 0.2) damageMultiplier = 0.3;
+        else if (fillPercentage < 0.4) damageMultiplier = 1.0;
+        else if (fillPercentage < 0.6) damageMultiplier = 1.5;
+        else if (fillPercentage < 0.8) damageMultiplier = 2.0;
+        else if (fillPercentage < 0.9) damageMultiplier = 3.0;
+        else if (fillPercentage < 0.95) {
             damageMultiplier = 5.0;
             state.consecutiveCriticalHits++;
             state.enemyStunned = true;
             logMessage(`${state.opponent.name} is stunned! Next attack prevented.`);
-        } else {
-            damageMultiplier = 3.0;
-            state.consecutiveCriticalHits = 0;
-        }
+        } else damageMultiplier = 3.0;
     } else if (state.combatMode === "precision" && clickX !== null && clickY !== null) {
         const field = document.getElementById("precision-field");
         const fieldRect = field.getBoundingClientRect();
@@ -149,31 +127,26 @@ async function performAttack(isAuto, clickX, clickY) {
                 break;
             } else if (distance < 4.9) {
                 damageMultiplier = 3.0;
-                state.consecutiveCriticalHits = 0;
                 logMessage("Great Hit!");
                 hitTargetId = targetId;
                 break;
             } else if (distance < 6.8) {
                 damageMultiplier = 2.0;
-                state.consecutiveCriticalHits = 0;
                 logMessage("Good Hit!");
                 hitTargetId = targetId;
                 break;
             } else if (distance < 8.7) {
                 damageMultiplier = 1.5;
-                state.consecutiveCriticalHits = 0;
                 logMessage("Fair Hit!");
                 hitTargetId = targetId;
                 break;
             } else if (distance < 10.6) {
                 damageMultiplier = 1.0;
-                state.consecutiveCriticalHits = 0;
                 logMessage("Weak Hit!");
                 hitTargetId = targetId;
                 break;
             } else if (distance < 12.5) {
                 damageMultiplier = 0.3;
-                state.consecutiveCriticalHits = 0;
                 logMessage("Glancing Hit!");
                 hitTargetId = targetId;
                 break;
@@ -210,7 +183,7 @@ async function performAttack(isAuto, clickX, clickY) {
         const trainingBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'trainingExp')?.value || 0), 0) / 100;
         const cappedXP = Math.min(baseXP * (1 + trainingBonus), XP_CAPS[state.opponent.stage] || 300);
         logMessage(`+${Math.floor(cappedXP)} XP, +${state.opponent.bitDrop} BIT`);
-        await gainXP(state.activeDigimonIndex, Math.floor(cappedXP));
+        gainXP(state.activeDigimonIndex, Math.floor(cappedXP));
         state.bit = Math.min(Math.max(0, state.bit + state.opponent.bitDrop), Number.MAX_SAFE_INTEGER);
         if (state.healOnVictory) {
             const equipHpBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.baseStats.hp || 0), 0) +
@@ -231,11 +204,7 @@ async function performAttack(isAuto, clickX, clickY) {
         }
         saveProgress(true);
         if (!state.opponent.name.endsWith("(Boss)")) {
-            state.opponent = await createOpponent(false);
-            if (!state.opponent) {
-                endBattle();
-                return;
-            }
+            state.opponent = createOpponent(false);
             logMessage(`New opponent: ${state.opponent.name}!`);
             if (state.combatMode === "precision") {
                 state.targetPositions = prevTargetPositions;
@@ -265,8 +234,8 @@ async function performAttack(isAuto, clickX, clickY) {
         spawnNewTarget(hitTargetId);
     }
 
-    if (!isAuto) state.isAttackDisabled = false;
-    await updateUI();
+    state.isAttackDisabled = false;
+    updateUI();
 }
 
 function playerAttack(event) {
@@ -285,10 +254,7 @@ function opponentAttack() {
     }
 
     const player = state.digimonSlots[state.activeDigimonIndex];
-    if (!player || !state.battleActive || player.hp <= 0 || !state.opponent || state.opponent.hp <= 0) {
-        logMessage("Opponent cannot attack: invalid battle state.");
-        return;
-    }
+    if (!player || !state.battleActive || player.hp <= 0 || !state.opponent || state.opponent.hp <= 0) return;
 
     const dodgeChance = 0.05;
     if (Math.random() < dodgeChance) {
@@ -369,72 +335,73 @@ function attack(event) {
         playerAttack(event);
     } else if (state.battleActive && !state.isAttackDisabled && state.combatMode === "charging") {
         playerAttack();
-    } else {
-        logMessage("Cannot attack: battle not active or attack disabled.");
     }
 }
 
-async function startBattle(isBoss) {
-    console.log("Starting battle, isBoss:", isBoss);
+function startBattle(isBoss = false) {
     if (state.activeDigimonIndex === null) {
         logMessage("No active Digimon selected! Please select a Digimon first.");
         return;
     }
     state.selectedEnemyStage = document.getElementById("enemy-stage-select").value;
-    state.opponent = await createOpponent(isBoss);
-    if (!state.opponent) {
-        logMessage("Failed to create opponent for this stage!");
-        return;
-    }
-    state.battleActive = true;
-    state.markerPosition = 0;
-    state.markerDirection = 1;
-    state.lastAttackTime = 0;
-    state.isAttackDisabled = false;
-    state.animationStartTime = null;
-    state.consecutiveCriticalHits = 0;
-    state.enemyStunned = false;
-    state.targetPositions = {};
+    createOpponent(isBoss).then(opponent => {
+        if (!opponent) {
+            logMessage("Failed to create opponent for this stage!");
+            return;
+        }
+        state.opponent = opponent;
+        state.battleActive = true;
+        state.markerPosition = 0;
+        state.markerDirection = 1;
+        state.lastAttackTime = 0;
+        state.isAttackDisabled = false;
+        state.animationStartTime = null;
+        state.consecutiveCriticalHits = 0;
+        state.enemyStunned = false;
+        state.targetPositions = {};
 
-    const player = state.digimonSlots[state.activeDigimonIndex];
-    const equipHpBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.baseStats.hp || 0), 0) +
-        Math.floor(player.maxHp * state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'maxHp')?.value || 0), 0) / 100);
-    const totalMaxHp = player.maxHp + player.shopBonuses.hp + player.rebirthBonuses.hp + equipHpBonus;
-    player.hp = totalMaxHp;
+        const player = state.digimonSlots[state.activeDigimonIndex];
+        const equipHpBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.baseStats.hp || 0), 0) +
+            Math.floor(player.maxHp * state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'maxHp')?.value || 0), 0) / 100);
+        const totalMaxHp = player.maxHp + player.shopBonuses.hp + player.rebirthBonuses.hp + equipHpBonus;
+        player.hp = totalMaxHp;
 
-    if (state.enemyAttackIntervalId) {
-        clearInterval(state.enemyAttackIntervalId);
-        state.enemyAttackIntervalId = null;
-    }
+        if (state.enemyAttackIntervalId) {
+            clearInterval(state.enemyAttackIntervalId);
+            state.enemyAttackIntervalId = null;
+        }
 
-    state.enemyAttackIntervalId = setInterval(opponentAttack, 3000);
+        state.enemyAttackIntervalId = setInterval(opponentAttack, 3000);
 
-    document.getElementById("menu-screen").style.display = "none";
-    document.getElementById("battle-screen").style.display = "block";
-    logMessage(`Battle vs ${state.opponent.name} begins!`);
+        document.getElementById("menu-screen").style.display = "none";
+        document.getElementById("battle-screen").style.display = "block";
+        logMessage(`Battle vs ${state.opponent.name} begins!`);
 
-    const timingBar = document.getElementById("timing-bar");
-    const field = document.getElementById("precision-field");
-    const attackButtonContainer = document.getElementById("attack-button-container");
+        const timingBar = document.getElementById("timing-bar");
+        const field = document.getElementById("precision-field");
+        const attackButtonContainer = document.getElementById("attack-button-container");
 
-    if (state.combatMode === "charging") {
-        timingBar.style.display = "block";
-        field.style.display = "none";
-        attackButtonContainer.style.display = "block";
-        timingBar.querySelectorAll(".power-line").forEach(line => line.style.display = "block");
-    } else {
-        timingBar.style.display = "none";
-        field.style.display = "block";
-        attackButtonContainer.style.display = "none";
-        spawnNewTarget("target");
-        spawnNewTarget("target2");
-        field.onclick = attack;
-    }
+        if (state.combatMode === "charging") {
+            timingBar.style.display = "block";
+            field.style.display = "none";
+            attackButtonContainer.style.display = "block";
+            marker.style.width = "0px";
+            marker.style.left = "0px";
+            timingBar.querySelectorAll(".power-line").forEach(line => line.style.display = "block");
+        } else {
+            timingBar.style.display = "none";
+            field.style.display = "block";
+            attackButtonContainer.style.display = "none";
+            spawnNewTarget("target");
+            spawnNewTarget("target2");
+            field.onclick = attack;
+        }
 
-    state.animationFrame = requestAnimationFrame(animateMarker);
-    document.addEventListener("keydown", handleKeyPress, { once: false });
+        state.animationFrame = requestAnimationFrame(animateMarker);
+        document.addEventListener("keydown", handleKeyPress, { once: false });
 
-    await updateUI();
+        updateUI();
+    });
 }
 
 function endBattle() {
