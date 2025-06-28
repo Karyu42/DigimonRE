@@ -12,60 +12,39 @@ async function hatchEgg(slotIndex) {
     try {
         const response = await fetch(`/api/digimon?level=Rookie`);
         if (!response.ok) throw new Error(`API error: ${response.status}`);
-        const data = await response.json();
-        const rookies = data.filter(d => normalizeStage(d.level) === "Rookie");
-        const randomDigimon = rookies[Math.floor(Math.random() * rookies.length)] || digimonData["Agumon"];
-        const multiplier = getStatMultiplier(normalizeStage(randomDigimon.level) || "Rookie");
+        const rookies = (await response.json()).filter(d => normalizeStage(d.level) === "Rookie");
+        if (!rookies.length) throw new Error("No Rookie Digimon found");
+        const randomDigimon = rookies[Math.floor(Math.random() * rookies.length)];
+        const multiplier = getStatMultiplier(normalizeStage(randomDigimon.level));
         const newDigimon = {
             name: randomDigimon.name,
             level: 1,
-            hp: (BASE_STATS.Rookie.hp || 80) * multiplier,
-            maxHp: (BASE_STATS.Rookie.hp || 80) * multiplier,
-            attack: (BASE_STATS.Rookie.attack || 20) * multiplier,
+            hp: BASE_STATS.Rookie.hp * multiplier,
+            maxHp: BASE_STATS.Rookie.hp * multiplier,
+            attack: BASE_STATS.Rookie.attack * multiplier,
             xp: 0,
             totalXp: 0,
             xpNext: 100,
             sprite: randomDigimon.images[0]?.href || `https://via.placeholder.com/60?text=${encodeURIComponent(randomDigimon.name)}`,
-            evolutions: digimonData[randomDigimon.name]?.evolutions || [],
+            evolutions: [],
             shopBonuses: { attack: 0, hp: 0 },
             rebirthBonuses: { attack: 0, hp: 0 },
-            stage: normalizeStage(randomDigimon.level) || "Rookie"
+            stage: normalizeStage(randomDigimon.level)
         };
         state.digimonSlots[slotIndex] = newDigimon;
         state.activeDigimonIndex = slotIndex;
         showMenu();
         logMessage(`A ${newDigimon.name} hatched in slot ${slotIndex + 1}!`);
-        updateUI();
+        await updateUI();
         saveProgress();
     } catch (error) {
         console.error("Error hatching egg:", error);
-        logMessage("Failed to hatch Digimon. Using default Agumon.");
-        const baseDigimon = digimonData["Agumon"];
-        const multiplier = getStatMultiplier(baseDigimon.stage);
-        state.digimonSlots[slotIndex] = {
-            name: "Agumon",
-            level: 1,
-            hp: baseDigimon.baseStats.hp * multiplier,
-            maxHp: baseDigimon.baseStats.hp * multiplier,
-            attack: baseDigimon.baseStats.attack * multiplier,
-            xp: 0,
-            totalXp: 0,
-            xpNext: 100,
-            sprite: baseDigimon.sprite,
-            evolutions: baseDigimon.evolutions,
-            shopBonuses: { attack: 0, hp: 0 },
-            rebirthBonuses: { attack: 0, hp: 0 },
-            stage: baseDigimon.stage
-        };
-        state.activeDigimonIndex = slotIndex;
-        showMenu();
-        logMessage(`A Agumon hatched in slot ${slotIndex + 1}!`);
-        updateUI();
-        saveProgress();
+        logMessage("Failed to hatch Digimon due to API error.");
+        throw error;
     }
 }
 
-function buySlot(slotIndex) {
+async function buySlot(slotIndex) {
     const cost = 100 * Math.pow(5, slotIndex);
     if (state.digimonSlots[slotIndex]) {
         logMessage(`Slot ${slotIndex + 1} is already occupied!`);
@@ -76,10 +55,10 @@ function buySlot(slotIndex) {
         return;
     }
     state.bit -= cost;
-    hatchEgg(slotIndex);
+    await hatchEgg(slotIndex);
 }
 
-function buyAttackBoost() {
+async function buyAttackBoost() {
     if (state.bit < 10000) {
         logMessage(`Not enough BIT (need 10000, have ${state.bit}) to buy an Attack Boost!`);
         return;
@@ -93,11 +72,11 @@ function buyAttackBoost() {
     digimon.shopBonuses.attack += 1;
     digimon.attack += 1;
     logMessage(`${digimon.name}'s Attack permanently increased by 1!`);
-    updateUI();
+    await updateUI();
     saveProgress();
 }
 
-function buyAttackBoostBulk(amount) {
+async function buyAttackBoostBulk(amount) {
     const costPerBoost = 10000;
     const digimon = state.digimonSlots[state.activeDigimonIndex];
     if (!digimon) {
@@ -123,11 +102,11 @@ function buyAttackBoostBulk(amount) {
     digimon.shopBonuses.attack += numBoosts;
     digimon.attack += numBoosts;
     logMessage(`${digimon.name}'s Attack permanently increased by ${numBoosts}! Spent ${totalCost} BIT.`);
-    updateUI();
+    await updateUI();
     saveProgress();
 }
 
-function buyHPBoost() {
+async function buyHPBoost() {
     if (state.bit < 10000) {
         logMessage(`Not enough BIT (need 10000, have ${state.bit}) to buy an HP Boost!`);
         return;
@@ -142,11 +121,11 @@ function buyHPBoost() {
     digimon.maxHp += 5;
     digimon.hp = digimon.maxHp;
     logMessage(`${digimon.name}'s HP permanently increased by 5!`);
-    updateUI();
+    await updateUI();
     saveProgress();
 }
 
-function buyHPBoostBulk(amount) {
+async function buyHPBoostBulk(amount) {
     const costPerBoost = 10000;
     const digimon = state.digimonSlots[state.activeDigimonIndex];
     if (!digimon) {
@@ -173,11 +152,11 @@ function buyHPBoostBulk(amount) {
     digimon.maxHp += numBoosts * 5;
     digimon.hp = digimon.maxHp;
     logMessage(`${digimon.name}'s HP permanently increased by ${numBoosts * 5}! Spent ${totalCost} BIT.`);
-    updateUI();
+    await updateUI();
     saveProgress();
 }
 
-function rebirthDigimon(slotIndex) {
+async function rebirthDigimon(slotIndex) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) {
         logMessage(`No Digimon in slot ${slotIndex + 1}.`);
@@ -187,51 +166,45 @@ function rebirthDigimon(slotIndex) {
         logMessage(`${digimon.name} must be at least level 15 to rebirth (current level: ${digimon.level})!`);
         return;
     }
-    const rookieNames = Object.keys(digimonData).filter(name => digimonData[name]?.stage === "Rookie");
-    const randomIndex = Math.floor(Math.random() * rookieNames.length);
-    let newName = rookieNames[randomIndex] || "Agumon";
-
-    const baseDigimon = digimonData[newName] || {
-        sprite: "https://digimon-api.com/images/digimon/Agumon.png",
-        evolutions: [
-            { name: "Greymon", level: 50, sprite: "https://digimon-api.com/images/digimon/Greymon.png" },
-            { name: "MetalGreymon", level: 200, sprite: "https://digimon-api.com/images/digimon/MetalGreymon.png" },
-            { name: "WarGreymon", level: 1000, sprite: "https://digimon-api.com/images/digimon/WarGreymon.png" }
-        ],
-        baseStats: { hp: 80, attack: 20 },
-        stage: "Rookie",
-        nextEvolutions: []
-    };
-
-    const multiplier = getStatMultiplier(baseDigimon.stage);
-    const newAttackBonus = Math.floor((digimon.attack - digimon.shopBonuses.attack - digimon.rebirthBonuses.attack) * 0.05);
-    const newMaxHpBonus = Math.floor((digimon.maxHp - digimon.shopBonuses.hp - digimon.rebirthBonuses.hp) * 0.05);
-
-    state.digimonSlots[slotIndex] = {
-        name: newName,
-        level: 1,
-        hp: (baseDigimon.baseStats.hp * multiplier) + digimon.rebirthBonuses.hp + newMaxHpBonus + digimon.shopBonuses.hp,
-        maxHp: (baseDigimon.baseStats.hp * multiplier) + digimon.rebirthBonuses.hp + newMaxHpBonus + digimon.shopBonuses.hp,
-        attack: (baseDigimon.baseStats.attack * multiplier) + digimon.rebirthBonuses.attack + newAttackBonus + digimon.shopBonuses.attack,
-        xp: 0,
-        totalXP: digimon.totalXp,
-        xpNext: 100,
-        sprite: baseDigimon.sprite,
-        evolutions: baseDigimon.evolutions,
-        shopBonuses: { attack: digimon.shopBonuses.attack, hp: digimon.shopBonuses.hp },
-        rebirthBonuses: { attack: digimon.rebirthBonuses.attack + newAttackBonus, hp: digimon.rebirthBonuses.hp + newMaxHpBonus },
-        stage: baseDigimon.stage
-    };
-    if (state.activeDigimonIndex === slotIndex) {
-        state.activeDigimonIndex = slotIndex;
+    try {
+        const response = await fetch(`/api/digimon?level=Rookie`);
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        const rookies = (await response.json()).filter(d => normalizeStage(d.level) === "Rookie");
+        if (!rookies.length) throw new Error("No Rookie Digimon found");
+        const newDigimon = rookies[Math.floor(Math.random() * rookies.length)];
+        const multiplier = getStatMultiplier(normalizeStage(newDigimon.level));
+        const newAttackBonus = Math.floor((digimon.attack - digimon.shopBonuses.attack - digimon.rebirthBonuses.attack) * 0.05);
+        const newMaxHpBonus = Math.floor((digimon.maxHp - digimon.shopBonuses.hp - digimon.rebirthBonuses.hp) * 0.05);
+        state.digimonSlots[slotIndex] = {
+            name: newDigimon.name,
+            level: 1,
+            hp: BASE_STATS.Rookie.hp * multiplier + digimon.rebirthBonuses.hp + newMaxHpBonus + digimon.shopBonuses.hp,
+            maxHp: BASE_STATS.Rookie.hp * multiplier + digimon.rebirthBonuses.hp + newMaxHpBonus + digimon.shopBonuses.hp,
+            attack: BASE_STATS.Rookie.attack * multiplier + digimon.rebirthBonuses.attack + newAttackBonus + digimon.shopBonuses.attack,
+            xp: 0,
+            totalXp: digimon.totalXp,
+            xpNext: 100,
+            sprite: newDigimon.images[0]?.href || `https://via.placeholder.com/60?text=${encodeURIComponent(newDigimon.name)}`,
+            evolutions: [],
+            shopBonuses: { attack: digimon.shopBonuses.attack, hp: digimon.shopBonuses.hp },
+            rebirthBonuses: { attack: digimon.rebirthBonuses.attack + newAttackBonus, hp: digimon.rebirthBonuses.hp + newMaxHpBonus },
+            stage: normalizeStage(newDigimon.level)
+        };
+        if (state.activeDigimonIndex === slotIndex) {
+            state.activeDigimonIndex = slotIndex;
+        }
+        state.afkModes[slotIndex] = null;
+        logMessage(`${digimon.name} rebirthed into ${newDigimon.name}!`);
+        await updateMenu();
+        saveProgress();
+    } catch (error) {
+        console.error("Error rebirthing Digimon:", error);
+        logMessage("Failed to rebirth Digimon due to API error.");
+        throw error;
     }
-    state.afkModes[slotIndex] = null;
-    logMessage(`${digimon.name} rebirthed into ${newName}!`);
-    updateMenu();
-    saveProgress();
 }
 
-function gainXP(slotIndex, amount) {
+async function gainXP(slotIndex, amount) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) return;
     digimon.xp += amount;
@@ -247,56 +220,51 @@ function gainXP(slotIndex, amount) {
         logMessage(`${digimon.name} leveled up to Level ${digimon.level}!`);
         const evolutionLevels = [50, 200, 1000, 5000];
         if (evolutionLevels.includes(digimon.level)) {
-            checkEvolution(slotIndex);
+            await checkEvolution(slotIndex);
         }
     }
-    updateUI();
+    await updateUI();
 }
 
-function checkEvolution(slotIndex) {
+async function checkEvolution(slotIndex) {
     const digimon = state.digimonSlots[slotIndex];
-    if (!digimon || digimon.evolutions.length === 0) return;
+    if (!digimon) return;
 
     const stageOrder = { Rookie: 1, Champion: 2, Ultimate: 3, Mega: 4, Ultra: 5 };
-    const validEvolutions = digimon.evolutions.filter(evo => {
-        const evoData = digimonData[evo.name] || {};
-        const evoStage = evoData.stage;
-        return (
-            evoStage &&
-            stageOrder[evoStage] > stageOrder[digimon.stage] &&
-            (
-                (evoStage === "Champion" && digimon.level >= 50 && digimon.stage === "Rookie") ||
-                (evoStage === "Ultimate" && digimon.level >= 200 && digimon.stage === "Champion") ||
-                (evoStage === "Mega" && digimon.level >= 1000 && digimon.stage === "Ultimate") ||
-                (evoStage === "Ultra" && digimon.level >= 5000 && digimon.stage === "Mega")
-            )
-        );
-    });
+    const nextStage = {
+        Rookie: "Champion",
+        Champion: "Ultimate",
+        Ultimate: "Mega",
+        Mega: "Ultra"
+    }[digimon.stage];
+    if (!nextStage || digimon.level < getEvolutionLevel(digimon.stage)) return;
 
-    if (validEvolutions.length > 0) {
-        const evolution = validEvolutions[Math.floor(Math.random() * validEvolutions.length)];
+    try {
+        const response = await fetch(`/api/digimon?level=${nextStage}`);
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        const candidates = (await response.json()).filter(d => normalizeStage(d.level) === nextStage);
+        if (!candidates.length) return;
+        const evolution = candidates[Math.floor(Math.random() * candidates.length)];
         const oldStage = digimon.stage;
         digimon.name = evolution.name;
-        digimon.sprite = evolution.sprite;
-        digimon.stage = digimonData[evolution.name]?.stage || (evolution.level === 50 ? "Champion" : evolution.level === 200 ? "Ultimate" : evolution.level === 1000 ? "Mega" : "Ultra");
+        digimon.sprite = evolution.images[0]?.href || `https://via.placeholder.com/60?text=${encodeURIComponent(evolution.name)}`;
+        digimon.stage = normalizeStage(evolution.level);
         const newMultiplier = getStatMultiplier(digimon.stage);
         const oldMultiplier = getStatMultiplier(oldStage);
-        const baseDigimon = digimonData[evolution.name] || {
-            baseStats: BASE_STATS[digimon.stage] || { hp: 80, attack: 20 },
-            sprite: evolution.sprite,
-            stage: digimon.stage,
-            evolutions: []
-        };
         digimon.maxHp = Math.floor((digimon.maxHp / oldMultiplier) * newMultiplier);
         digimon.hp = digimon.maxHp;
         digimon.attack = Math.floor((digimon.attack / oldMultiplier) * newMultiplier);
-        digimon.evolutions = baseDigimon.evolutions;
+        digimon.evolutions = [];
         logMessage(`${digimon.name} evolved into ${evolution.name}!`);
+        await updateUI();
+    } catch (error) {
+        console.error("Error evolving Digimon:", error);
+        logMessage("Failed to evolve Digimon due to API error.");
+        throw error;
     }
-    updateUI();
 }
 
-function jogress(slotIndex1, slotIndex2) {
+async function jogress(slotIndex1, slotIndex2) {
     const digimon1 = state.digimonSlots[slotIndex1];
     const digimon2 = state.digimonSlots[slotIndex2];
     if (!digimon1 || !digimon2) {
@@ -321,46 +289,55 @@ function jogress(slotIndex1, slotIndex2) {
         logMessage(`Need ${pair.shardCost} Jogress Shards (have ${state.jogressShards}) for this Jogress. Buy in shop for 2000 BIT each.`);
         return;
     }
-    state.jogressShards -= pair.shardCost;
-    const newLevel = Math.max(digimon1.level, digimon2.level);
-    const newStage = pair.result.baseStats.hp === BASE_STATS.Champion.hp ? "Champion" :
-                    pair.result.baseStats.hp === BASE_STATS.Ultimate.hp ? "Ultimate" :
-                    pair.result.baseStats.hp === BASE_STATS.Mega.hp ? "Mega" : "Ultra";
-    const multiplier = getStatMultiplier(newStage);
-    const baseMaxHp = pair.result.baseStats.hp * multiplier + digimon1.shopBonuses.hp + digimon2.shopBonuses.hp + digimon1.rebirthBonuses.hp + digimon2.rebirthBonuses.hp;
-    const baseAttack = pair.result.baseStats.attack * multiplier + digimon1.shopBonuses.attack + digimon2.shopBonuses.attack + digimon1.rebirthBonuses.attack + digimon2.rebirthBonuses.attack;
-    state.digimonSlots[slotIndex1] = {
-        name: pair.result.name,
-        level: newLevel,
-        hp: baseMaxHp,
-        maxHp: baseMaxHp,
-        attack: baseAttack,
-        xp: 0,
-        totalXP: digimon1.totalXp + digimon2.totalXp,
-        xpNext: 100 * newLevel,
-        sprite: pair.result.sprite,
-        evolutions: digimonData[pair.result.name]?.evolutions || [],
-        shopBonuses: { attack: digimon1.shopBonuses.attack + digimon2.shopBonuses.attack, hp: digimon1.shopBonuses.hp + digimon2.shopBonuses.hp },
-        rebirthBonuses: { attack: digimon1.rebirthBonuses.attack + digimon2.rebirthBonuses.attack, hp: digimon1.rebirthBonuses.hp + digimon2.rebirthBonuses.hp },
-        stage: newStage
-    };
-    state.digimonSlots[slotIndex2] = null;
-    if (state.activeDigimonIndex === slotIndex2) {
-        state.activeDigimonIndex = slotIndex1;
+    try {
+        const response = await fetch(`/api/digimon?name=${encodeURIComponent(pair.result.name)}`);
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        const [resultDigimon] = await response.json();
+        if (!resultDigimon) throw new Error(`Jogress result ${pair.result.name} not found`);
+        state.jogressShards -= pair.shardCost;
+        const newLevel = Math.max(digimon1.level, digimon2.level);
+        const newStage = normalizeStage(resultDigimon.level);
+        const multiplier = getStatMultiplier(newStage);
+        const baseMaxHp = pair.result.baseStats.hp * multiplier + digimon1.shopBonuses.hp + digimon2.shopBonuses.hp + digimon1.rebirthBonuses.hp + digimon2.rebirthBonuses.hp;
+        const baseAttack = pair.result.baseStats.attack * multiplier + digimon1.shopBonuses.attack + digimon2.shopBonuses.attack + digimon1.rebirthBonuses.attack + digimon2.rebirthBonuses.attack;
+        state.digimonSlots[slotIndex1] = {
+            name: resultDigimon.name,
+            level: newLevel,
+            hp: baseMaxHp,
+            maxHp: baseMaxHp,
+            attack: baseAttack,
+            xp: 0,
+            totalXp: digimon1.totalXp + digimon2.totalXp,
+            xpNext: 100 * newLevel,
+            sprite: resultDigimon.images[0]?.href || `https://via.placeholder.com/60?text=${encodeURIComponent(resultDigimon.name)}`,
+            evolutions: [],
+            shopBonuses: { attack: digimon1.shopBonuses.attack + digimon2.shopBonuses.attack, hp: digimon1.shopBonuses.hp + digimon2.shopBonuses.hp },
+            rebirthBonuses: { attack: digimon1.rebirthBonuses.attack + digimon2.rebirthBonuses.attack, hp: digimon1.rebirthBonuses.hp + digimon2.rebirthBonuses.hp },
+            stage: newStage
+        };
+        state.digimonSlots[slotIndex2] = null;
+        if (state.activeDigimonIndex === slotIndex2) {
+            state.activeDigimonIndex = slotIndex1;
+        }
+        logMessage(`${digimon1.name} and ${digimon2.name} Jogressed into ${resultDigimon.name}!`);
+        await updateMenu();
+        saveProgress();
+    } catch (error) {
+        console.error("Error performing Jogress:", error);
+        logMessage("Failed to Jogress due to API error.");
+        throw error;
     }
-    logMessage(`${digimon1.name} and ${digimon2.name} Jogressed into ${pair.result.name}!`);
-    updateMenu();
-    saveProgress();
 }
 
-function showDigimonInfo(slotIndex) {
+async function showDigimonInfo(slotIndex) {
     const digimon = state.digimonSlots[slotIndex];
     if (!digimon) {
         logMessage(`No Digimon in slot ${slotIndex + 1}.`);
         return;
     }
-    const evolutions = digimon.evolutions.map(e => `${e.name} (Lv${e.level})`).join(", ") || "None";
-    logMessage(`
+    try {
+        const digimonData = await fetchDigimonFromAPI(digimon.name);
+        logMessage(`
 Digimon Info:
 - Name: ${digimon.name}
 - Level: ${digimon.level}
@@ -368,7 +345,12 @@ Digimon Info:
 - Attack: ${digimon.attack} (+${digimon.shopBonuses.attack} shop, +${digimon.rebirthBonuses.attack} rebirth)
 - XP: ${digimon.xp}/${digimon.xpNext}
 - Total XP: ${digimon.totalXp}
-- Current Evolution: ${digimon.stage}
-- Possible Evolutions: ${evolutions}
-    `.trim());
+- Current Evolution: ${digimonData.stage}
+- Possible Evolutions: None
+        `.trim());
+    } catch (error) {
+        console.error("Error showing Digimon info:", error);
+        logMessage("Failed to fetch Digimon info due to API error.");
+        throw error;
+    }
 }

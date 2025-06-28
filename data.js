@@ -6,88 +6,40 @@ const BASE_STATS = {
     Ultra: { hp: 240, attack: 60 }
 };
 
-let digimonData = {
-    Agumon: {
-        sprite: "https://digimon-api.com/images/digimon/Agumon.png",
-        evolutions: [
-            { name: "Greymon", level: 50, sprite: "https://digimon-api.com/images/digimon/Greymon.png" },
-            { name: "MetalGreymon", level: 200, sprite: "https://digimon-api.com/images/digimon/MetalGreymon.png" },
-            { name: "WarGreymon", level: 1000, sprite: "https://digimon-api.com/images/digimon/WarGreymon.png" }
-        ],
-        baseStats: { ...BASE_STATS.Rookie },
-        stage: "Rookie",
-        nextEvolutions: []
-    },
-    Greymon: {
-        sprite: "https://digimon-api.com/images/digimon/Greymon.png",
-        evolutions: [
-            { name: "MetalGreymon", level: 200, sprite: "https://digimon-api.com/images/digimon/MetalGreymon.png" },
-            { name: "WarGreymon", level: 1000, sprite: "https://digimon-api.com/images/digimon/WarGreymon.png" }
-        ],
-        baseStats: { ...BASE_STATS.Champion },
-        stage: "Champion",
-        nextEvolutions: []
-    },
-    MetalGreymon: {
-        sprite: "https://digimon-api.com/images/digimon/MetalGreymon.png",
-        evolutions: [
-            { name: "WarGreymon", level: 1000, sprite: "https://digimon-api.com/images/digimon/WarGreymon.png" }
-        ],
-        baseStats: { ...BASE_STATS.Ultimate },
-        stage: "Ultimate",
-        nextEvolutions: []
-    },
-    WarGreymon: {
-        sprite: "https://digimon-api.com/images/digimon/WarGreymon.png",
-        evolutions: [],
-        baseStats: { ...BASE_STATS.Mega },
-        stage: "Mega",
-        nextEvolutions: []
-    },
-    Omnimon: {
-        sprite: "https://digimon-api.com/images/digimon/Omnimon.png",
-        evolutions: [],
-        baseStats: { ...BASE_STATS.Ultra },
-        stage: "Ultra",
-        nextEvolutions: []
-    }
-};
-
 async function fetchDigimonFromAPI(name) {
     try {
         const response = await fetch(`/api/digimon?name=${encodeURIComponent(name)}`);
         if (!response.ok) throw new Error(`API error: ${response.status}`);
-        const data = await response.json();
-        const digimon = data[0];
-        if (!digimon) return null;
+        const [digimon] = await response.json();
+        if (!digimon) throw new Error(`Digimon ${name} not found`);
         return {
             name: digimon.name,
             sprite: digimon.images[0]?.href || `https://via.placeholder.com/60?text=${encodeURIComponent(digimon.name)}`,
             baseStats: BASE_STATS[normalizeStage(digimon.level)] || BASE_STATS.Rookie,
             stage: normalizeStage(digimon.level),
-            evolutions: [] // API doesn't provide evolutions, use hardcoded if needed
+            evolutions: [] // API doesn't provide evolutions
         };
     } catch (error) {
         logMessage(`API Error: Failed to fetch ${name}.`);
         console.error(`Failed to fetch Digimon ${name}:`, error);
-        return null;
+        throw error;
     }
-}
-
-async function fetchDigimon(name) {
-    const apiData = await fetchDigimonFromAPI(name);
-    return apiData || digimonData[name] || null;
 }
 
 function normalizeStage(apiLevel) {
-    switch (apiLevel) {
-        case "Rookie": return "Rookie";
-        case "Champion": return "Champion";
-        case "Ultimate": return "Ultimate";
-        case "Mega": return "Mega";
-        case "Ultra": return "Ultra";
-        default: return "Rookie";
-    }
+    const stageMap = {
+        Fresh: "Rookie",
+        InTraining: "Rookie",
+        Training: "Rookie",
+        Rookie: "Rookie",
+        Champion: "Champion",
+        Ultimate: "Ultimate",
+        Mega: "Mega",
+        Ultra: "Ultra",
+        Armor: "Champion",
+        Hybrid: "Ultimate"
+    };
+    return stageMap[apiLevel] || "Rookie";
 }
 
 function getEvolutionLevel(currentStage) {
@@ -110,60 +62,7 @@ function getJogressShardCost(resultStage) {
     return shardCostMap[resultStage] || 5;
 }
 
-function parseConditionPartners(condition) {
-    const partnerMatch = condition.match(/with (.+?)(?:, or | or |$)/);
-    if (!partnerMatch) return [];
-    return partnerMatch[1].split(/, | or /).map(name => name.trim()).filter(name => name && digimonData[name]);
-}
-
 function generateJogressPairs() {
-    const validStages = ["Rookie", "Champion", "Ultimate", "Mega", "Ultra"];
-    const stageOrder = { Rookie: 1, Champion: 2, Ultimate: 3, Mega: 4, Ultra: 5 };
-    const jogressPairs = [];
-
-    for (const [name, digimon] of Object.entries(digimonData)) {
-        for (const evo of digimon.nextEvolutions) {
-            const evoStage = normalizeStage(evo.level);
-            if (!validStages.includes(evoStage) || !digimonData[evo.digimon] || stageOrder[evoStage] <= stageOrder[digimon.stage]) continue;
-
-            if (evo.condition && evo.condition.includes("with ")) {
-                const partners = parseConditionPartners(evo.condition);
-                for (const partner of partners) {
-                    const partnerData = fetchDigimon(partner);
-                    if (partnerData && stageOrder[partnerData.stage] >= stageOrder[digimon.stage]) {
-                        jogressPairs.push({
-                            digimon1: name,
-                            digimon2: partner,
-                            result: {
-                                name: evo.digimon,
-                                sprite: digimonData[evo.digimon]?.sprite || "https://via.placeholder.com/60?text=" + encodeURIComponent(evo.digimon),
-                                baseStats: { ...BASE_STATS[evoStage] }
-                            },
-                            minStage: digimon.stage,
-                            shardCost: getJogressShardCost(evoStage)
-                        });
-                    }
-                }
-            }
-        }
-    }
-
-    jogressPairs.push(...getFallbackJogressPairs());
-
-    const uniquePairs = [];
-    const seen = new Set();
-    jogressPairs.forEach(pair => {
-        const key = [pair.digimon1, pair.digimon2, pair.result.name].sort().join('|');
-        if (!seen.has(key)) {
-            seen.add(key);
-            uniquePairs.push(pair);
-        }
-    });
-
-    return uniquePairs;
-}
-
-function getFallbackJogressPairs() {
     return [
         {
             digimon1: "Angemon",
