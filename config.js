@@ -45,5 +45,3 @@ const validStages = ["Rookie", "Champion", "Ultimate", "Mega", "Ultra"];
 if (!validStages.includes(state.selectedEnemyStage)) {
     state.selectedEnemyStage = "Rookie";
 }
-
-console.log("config.js loaded successfully.");

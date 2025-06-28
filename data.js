@@ -8,7 +8,6 @@ async function fetchDigimonByLevel(level) {
         const data = await response.json();
         return data.content || [];
     } catch (error) {
-        console.error(`Error fetching Digimon for level ${level}:`, error);
         return [];
     }
 }
@@ -19,7 +18,17 @@ async function fetchDigimonById(id) {
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         return await response.json();
     } catch (error) {
-        console.error(`Error fetching Digimon ID ${id}:`, error);
+        return null;
+    }
+}
+
+async function fetchDigimonByName(name) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/digimon?name=${encodeURIComponent(name)}&exact=true`);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        return data.content?.[0] || null;
+    } catch (error) {
         return null;
     }
 }

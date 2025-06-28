@@ -16,7 +16,7 @@ async function hatchEgg(slotIndex) {
         totalXp: 0,
         xpNext: 100,
         sprite: validateSpriteUrl(digimon.images?.[0]?.href),
-        evolutions: digimon.evolutions || [],
+        evolutions: digimon.priorEvolutions?.map(evo => ({ id: evo.id, name: evo.digimon, level: getEvolutionLevel(evo.level) })) || [],
         shopBonuses: { attack: 0, hp: 0 },
         rebirthBonuses: { attack: 0, hp: 0 },
         stage: "Rookie"
@@ -155,7 +155,7 @@ async function rebirthDigimon(slotIndex) {
         totalXp: digimon.totalXp,
         xpNext: 100,
         sprite: validateSpriteUrl(newDigimon.images?.[0]?.href),
-        evolutions: newDigimon.evolutions || [],
+        evolutions: newDigimon.priorEvolutions?.map(evo => ({ id: evo.id, name: evo.digimon, level: getEvolutionLevel(evo.level) })) || [],
         shopBonuses: { attack: digimon.shopBonuses.attack, hp: digimon.shopBonuses.hp },
         rebirthBonuses: { attack: digimon.rebirthBonuses.attack + newAttackBonus, hp: digimon.rebirthBonuses.hp + newMaxHpBonus },
         stage: "Rookie"
@@ -165,25 +165,6 @@ async function rebirthDigimon(slotIndex) {
     logMessage(`${digimon.name} rebirthed into ${newDigimon.name}!`);
     updateMenu();
     saveProgress();
-}
-
-function gainXP(slotIndex, amount) {
-    const digimon = state.digimonSlots[slotIndex];
-    if (!digimon) return;
-    digimon.xp += amount;
-    digimon.totalXp += amount;
-    const multiplier = getStatMultiplier(digimon.stage);
-    while (digimon.xp >= digimon.xpNext) {
-        digimon.level++;
-        digimon.xp -= digimon.xpNext;
-        digimon.xpNext = digimon.level < 10 ? Math.floor(digimon.xpNext * 1.5) : 3000;
-        digimon.maxHp += 20 * multiplier;
-        digimon.hp = digimon.maxHp;
-        digimon.attack += 5 * multiplier;
-        logMessage(`${digimon.name} leveled up to Level ${digimon.level}!`);
-        checkEvolution(slotIndex);
-    }
-    updateUI();
 }
 
 async function checkEvolution(slotIndex) {
@@ -209,13 +190,23 @@ async function checkEvolution(slotIndex) {
         digimon.maxHp = Math.floor((digimon.maxHp / oldMultiplier) * newMultiplier);
         digimon.hp = digimon.maxHp;
         digimon.attack = Math.floor((digimon.attack / oldMultiplier) * newMultiplier);
-        digimon.evolutions = evolvedDigimon.evolutions || [];
+        digimon.evolutions = evolvedDigimon.priorEvolutions?.map(evo => ({ id: evo.id, name: evo.digimon, level: getEvolutionLevel(evo.level) })) || [];
         logMessage(`${digimon.name} evolved into ${evolvedDigimon.name}!`);
     }
     updateUI();
 }
 
-function jogress(slotIndex1, slotIndex2) {
+function getEvolutionLevel(level) {
+    const levelMap = {
+        "Rookie": 50,
+        "Champion": 500,
+        "Ultimate": 5000,
+        "Mega": 5000
+    };
+    return levelMap[level] || 5000;
+}
+
+async function jogress(slotIndex1, slotIndex2) {
     const digimon1 = state.digimonSlots[slotIndex1];
     const digimon2 = state.digimonSlots[slotIndex2];
     if (!digimon1 || !digimon2) {
@@ -244,6 +235,7 @@ function jogress(slotIndex1, slotIndex2) {
     const multiplier = getStatMultiplier(newStage);
     const baseMaxHp = pair.result.baseStats.hp * multiplier + digimon1.shopBonuses.hp + digimon2.shopBonuses.hp + digimon1.rebirthBonuses.hp + digimon2.rebirthBonuses.hp;
     const baseAttack = pair.result.baseStats.attack * multiplier + digimon1.shopBonuses.attack + digimon2.shopBonuses.attack + digimon1.rebirthBonuses.attack + digimon2.rebirthBonuses.attack;
+    const jogressDigimon = await fetchDigimonByName(pair.result.name);
     state.digimonSlots[slotIndex1] = {
         name: pair.result.name,
         level: newLevel,
@@ -253,8 +245,8 @@ function jogress(slotIndex1, slotIndex2) {
         xp: 0,
         totalXp: digimon1.totalXp + digimon2.totalXp,
         xpNext: 100 * newLevel,
-        sprite: pair.result.sprite,
-        evolutions: [],
+        sprite: jogressDigimon ? validateSpriteUrl(jogressDigimon.images?.[0]?.href) : pair.result.sprite,
+        evolutions: jogressDigimon?.priorEvolutions?.map(evo => ({ id: evo.id, name: evo.digimon, level: getEvolutionLevel(evo.level) })) || [],
         shopBonuses: { attack: digimon1.shopBonuses.attack + digimon2.shopBonuses.attack, hp: digimon1.shopBonuses.hp + digimon2.shopBonuses.hp },
         rebirthBonuses: { attack: digimon1.rebirthBonuses.attack + digimon2.rebirthBonuses.attack, hp: digimon1.rebirthBonuses.hp + digimon2.rebirthBonuses.hp },
         stage: newStage

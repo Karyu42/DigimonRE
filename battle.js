@@ -18,13 +18,13 @@ async function createOpponent(isBoss = false) {
     
     if (stage === "Ultra") {
         possibleDigimon = [
-            { name: "Omnimon", baseStats: { hp: 300, attack: 60 }, images: [{ href: "https://digi-api.com/images/omnimon.jpg" }], level: "Mega" },
-            { name: "Imperialdramon", baseStats: { hp: 280, attack: 60 }, images: [{ href: "https://digi-api.com/images/imperialdramon.jpg" }], level: "Mega" }
+            { name: "Omnimon", baseStats: { hp: 300, attack: 60 }, images: [{ href: validateSpriteUrl("https://digi-api.com/images/omnimon.jpg") }], level: "Mega" },
+            { name: "Imperialdramon", baseStats: { hp: 280, attack: 60 }, images: [{ href: validateSpriteUrl("https://digi-api.com/images/imperialdramon.jpg") }], level: "Mega" }
         ];
     }
 
     if (possibleDigimon.length === 0) {
-        possibleDigimon = [{ name: "Agumon", baseStats: { hp: 100, attack: 20 }, images: [{ href: "https://digi-api.com/images/agumon.jpg" }], level: "Rookie" }];
+        possibleDigimon = [{ name: "Agumon", baseStats: { hp: 100, attack: 20 }, images: [{ href: validateSpriteUrl("https://digi-api.com/images/agumon.jpg") }], level: "Rookie" }];
     }
 
     const selectedDigimon = possibleDigimon[Math.floor(Math.random() * possibleDigimon.length)];
@@ -47,7 +47,6 @@ async function createOpponent(isBoss = false) {
     };
 }
 
-// Rest of the battle.js remains unchanged
 function spawnNewTarget(targetId) {
     const field = document.getElementById("precision-field");
     const target = document.getElementById(targetId);
@@ -204,7 +203,7 @@ function performAttack(isAuto = false, clickX = null, clickY = null) {
         }
         saveProgress(true);
         if (!state.opponent.name.endsWith("(Boss)")) {
-            state.opponent = createOpponent(false);
+            state.opponent = await createOpponent(false);
             logMessage(`New opponent: ${state.opponent.name}!`);
             if (state.combatMode === "precision") {
                 state.targetPositions = prevTargetPositions;
@@ -338,70 +337,68 @@ function attack(event) {
     }
 }
 
-function startBattle(isBoss = false) {
+async function startBattle(isBoss = false) {
     if (state.activeDigimonIndex === null) {
         logMessage("No active Digimon selected! Please select a Digimon first.");
         return;
     }
     state.selectedEnemyStage = document.getElementById("enemy-stage-select").value;
-    createOpponent(isBoss).then(opponent => {
-        if (!opponent) {
-            logMessage("Failed to create opponent for this stage!");
-            return;
-        }
-        state.opponent = opponent;
-        state.battleActive = true;
-        state.markerPosition = 0;
-        state.markerDirection = 1;
-        state.lastAttackTime = 0;
-        state.isAttackDisabled = false;
-        state.animationStartTime = null;
-        state.consecutiveCriticalHits = 0;
-        state.enemyStunned = false;
-        state.targetPositions = {};
+    state.opponent = await createOpponent(isBoss);
+    if (!state.opponent) {
+        logMessage("Failed to create opponent for this stage!");
+        return;
+    }
+    state.battleActive = true;
+    state.markerPosition = 0;
+    state.markerDirection = 1;
+    state.lastAttackTime = 0;
+    state.isAttackDisabled = false;
+    state.animationStartTime = null;
+    state.consecutiveCriticalHits = 0;
+    state.enemyStunned = false;
+    state.targetPositions = {};
 
-        const player = state.digimonSlots[state.activeDigimonIndex];
-        const equipHpBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.baseStats.hp || 0), 0) +
-            Math.floor(player.maxHp * state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'maxHp')?.value || 0), 0) / 100);
-        const totalMaxHp = player.maxHp + player.shopBonuses.hp + player.rebirthBonuses.hp + equipHpBonus;
-        player.hp = totalMaxHp;
+    const player = state.digimonSlots[state.activeDigimonIndex];
+    const equipHpBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.baseStats.hp || 0), 0) +
+        Math.floor(player.maxHp * state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'maxHp')?.value || 0), 0) / 100);
+    const totalMaxHp = player.maxHp + player.shopBonuses.hp + player.rebirthBonuses.hp + equipHpBonus;
+    player.hp = totalMaxHp;
 
-        if (state.enemyAttackIntervalId) {
-            clearInterval(state.enemyAttackIntervalId);
-            state.enemyAttackIntervalId = null;
-        }
+    if (state.enemyAttackIntervalId) {
+        clearInterval(state.enemyAttackIntervalId);
+        state.enemyAttackIntervalId = null;
+    }
 
-        state.enemyAttackIntervalId = setInterval(opponentAttack, 3000);
+    state.enemyAttackIntervalId = setInterval(opponentAttack, 3000);
 
-        document.getElementById("menu-screen").style.display = "none";
-        document.getElementById("battle-screen").style.display = "block";
-        logMessage(`Battle vs ${state.opponent.name} begins!`);
+    document.getElementById("menu-screen").style.display = "none";
+    document.getElementById("battle-screen").style.display = "block";
+    logMessage(`Battle vs ${state.opponent.name} begins!`);
 
-        const timingBar = document.getElementById("timing-bar");
-        const field = document.getElementById("precision-field");
-        const attackButtonContainer = document.getElementById("attack-button-container");
+    const timingBar = document.getElementById("timing-bar");
+    const field = document.getElementById("precision-field");
+    const attackButtonContainer = document.getElementById("attack-button-container");
 
-        if (state.combatMode === "charging") {
-            timingBar.style.display = "block";
-            field.style.display = "none";
-            attackButtonContainer.style.display = "block";
-            marker.style.width = "0px";
-            marker.style.left = "0px";
-            timingBar.querySelectorAll(".power-line").forEach(line => line.style.display = "block");
-        } else {
-            timingBar.style.display = "none";
-            field.style.display = "block";
-            attackButtonContainer.style.display = "none";
-            spawnNewTarget("target");
-            spawnNewTarget("target2");
-            field.onclick = attack;
-        }
+    if (state.combatMode === "charging") {
+        timingBar.style.display = "block";
+        field.style.display = "none";
+        attackButtonContainer.style.display = "block";
+        marker.style.width = "0px";
+        marker.style.left = "0px";
+        timingBar.querySelectorAll(".power-line").forEach(line => line.style.display = "block");
+    } else {
+        timingBar.style.display = "none";
+        field.style.display = "block";
+        attackButtonContainer.style.display = "none";
+        spawnNewTarget("target");
+        spawnNewTarget("target2");
+        field.onclick = attack;
+    }
 
-        state.animationFrame = requestAnimationFrame(animateMarker);
-        document.addEventListener("keydown", handleKeyPress, { once: false });
+    state.animationFrame = requestAnimationFrame(animateMarker);
+    document.addEventListener("keydown", handleKeyPress, { once: false });
 
-        updateUI();
-    });
+    updateUI();
 }
 
 function endBattle() {

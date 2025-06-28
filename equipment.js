@@ -106,8 +106,6 @@ function equipFromInventory(invIndex) {
             Math.floor(player.maxHp * state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'maxHp')?.value || 0), 0) / 100);
         const totalMaxHp = player.maxHp + player.shopBonuses.hp + player.rebirthBonuses.hp + equipHpBonus;
         player.hp = Math.min(player.hp, totalMaxHp);
-        const attackDamageBonus = ring.effects.find(e => e.type === 'attackDamage')?.value || 0;
-        console.log(`Equipped ${ring.name}: +${ring.baseStats.attack} attack, +${ring.baseStats.hp} HP, effects: ${ring.effects.map(e => `${e.type}: ${e.value}%`).join(', ')}, attackDamage: ${attackDamageBonus}%`);
     }
     updateUI();
     saveProgress();

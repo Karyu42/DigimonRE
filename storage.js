@@ -1,7 +1,5 @@
 const SAVE_VERSION = "1.0.1";
 const STORAGE_KEY = "digimonRPG_save";
-const API_BASE_URL = "https://digi-api.com/api/v1";
-const FALLBACK_SPRITE = "https://digi-api.com/images/default.png";
 let isInitialLoad = true;
 
 function saveProgress(logToGame = false) {
@@ -246,14 +244,5 @@ async function fetchDigimonByName(name) {
         return data.content?.[0] || null;
     } catch (error) {
         return null;
-    }
-}
-
-function validateSpriteUrl(url) {
-    try {
-        new URL(url);
-        return url;
-    } catch {
-        return FALLBACK_SPRITE;
     }
 }
