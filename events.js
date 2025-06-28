@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'buy-hp-boost': buyHPBoost,
         'buy-hp-boost-half': () => buyHPBoostBulk('half'),
         'buy-hp-boost-all': () => buyHPBoostBulk('all'),
-        'attack-button': attack
+        'attack-button': async (event) => await attack(event)
     };
 
     Object.entries(buttons).forEach(([id, handler]) => {

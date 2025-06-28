@@ -63,7 +63,7 @@ function spawnNewTarget(targetId) {
     target.style.top = `${position.y}px`;
 }
 
-function performAttack(isAuto = false, clickX = null, clickY = null) {
+async function performAttack(isAuto = false, clickX = null, clickY = null) {
     const player = state.digimonSlots[state.activeDigimonIndex];
     if (!player || !state.battleActive || player.hp <= 0 || !state.opponent || state.opponent.hp <= 0) {
         logMessage("Cannot attack: invalid battle state.");
@@ -204,17 +204,19 @@ function performAttack(isAuto = false, clickX = null, clickY = null) {
         saveProgress(true);
         if (!state.opponent.name.endsWith("(Boss)")) {
             state.opponent = await createOpponent(false);
-            logMessage(`New opponent: ${state.opponent.name}!`);
-            if (state.combatMode === "precision") {
-                state.targetPositions = prevTargetPositions;
-                for (const targetId of ["target", "target2"]) {
-                    const target = document.getElementById(targetId);
-                    const pos = state.targetPositions[targetId];
-                    if (pos) {
-                        target.style.left = `${pos.x}px`;
-                        target.style.top = `${pos.y}px`;
-                    } else {
-                        spawnNewTarget(targetId);
+            if (state.opponent) {
+                logMessage(`New opponent: ${state.opponent.name}!`);
+                if (state.combatMode === "precision") {
+                    state.targetPositions = prevTargetPositions;
+                    for (const targetId of ["target", "target2"]) {
+                        const target = document.getElementById(targetId);
+                        const pos = state.targetPositions[targetId];
+                        if (pos) {
+                            target.style.left = `${pos.x}px`;
+                            target.style.top = `${pos.y}px`;
+                        } else {
+                            spawnNewTarget(targetId);
+                        }
                     }
                 }
             }
@@ -329,11 +331,11 @@ function animateMarker(timestamp) {
     }
 }
 
-function attack(event) {
+async function attack(event) {
     if (state.battleActive && !state.isAttackDisabled && state.combatMode === "precision" && event) {
-        playerAttack(event);
+        await playerAttack(event);
     } else if (state.battleActive && !state.isAttackDisabled && state.combatMode === "charging") {
-        playerAttack();
+        await playerAttack();
     }
 }
 
