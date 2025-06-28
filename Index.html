@@ -42,19 +42,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Digimon RPG: Battle, train, and evolve your Digimon in this web-based adventure game.">
-    <meta name="author" content="Your Name">
     <title>Digimon RPG</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="game-container">
         <div id="menu-screen">
             <h2>Digimon Status</h2>
-            <p id="bit-balance">BIT: <span id="bit-amount">0</span> | Jogress Shards: <span id="jogress-shards">0</span></p>
-            <p>Active Digimon: <span id="menu-player-name">None</span> (Level: <span id="menu-player-level">0</span>)</p>
-            <p id="afk-status">Not training</p>
+            <div id="bit-balance">BIT: <span id="bit-amount">0</span> | Jogress Shards: <span id="jogress-shards">0</span></div>
+            <div>Active Digimon: <span id="menu-player-name">None</span> (Level: <span id="menu-player-level">0</span>)</div>
+            <div id="afk-status">Not training</div>
             <div id="digimon-slots"></div>
             <select id="enemy-stage-select">
                 <option value="Rookie">Rookie</option>
@@ -63,25 +61,39 @@
                 <option value="Mega">Mega</option>
                 <option value="Ultra">Ultra</option>
             </select>
-            <p>Combat Mode: <select id="combat-mode-select"></select></p>
-            <button id="start-normal-fight">Start Normal Fight</button>
-            <button id="start-boss-fight">Start Boss Fight</button>
-            <button id="go-to-shop">Go to Shop</button>
-            <button id="jogress-menu">Jogress Menu</button>
-            <button id="manage-equipment">Manage Equipment</button>
-            <button id="reset-game">Reset Game</button>
-            <button id="auto-save">Auto-Save Game</button>
-            <button id="export-save">Export Save</button>
-            <input type="file" id="load-game-input" accept=".json">
+            <div>
+                Combat Mode: 
+                <select id="combat-mode-select">
+                    <option value="charging">Charging Bar</option>
+                    <option value="precision">Precision Strike</option>
+                </select>
+            </div>
+            <div>
+                <button id="start-normal-fight">Start Normal Fight</button>
+                <button id="start-boss-fight">Start Boss Fight</button>
+                <button id="go-to-shop">Go to Shop</button>
+                <button id="jogress-menu">Jogress Menu</button>
+                <button id="manage-equipment">Manage Equipment</button>
+                <button id="reset-game">Reset Game</button>
+                <button id="auto-save">Auto-Save Game</button>
+                <button id="export-save">Export Save</button>
+                <input type="file" id="load-game-input" accept=".json">
+            </div>
         </div>
 
         <div id="jogress-screen">
             <h2>Jogress Menu</h2>
             <p>Select two Digimon to Jogress:</p>
-            <select id="jogress-digimon1"><option value="">Select First Digimon</option></select>
-            <select id="jogress-digimon2"><option value="">Select Second Digimon</option></select>
-            <button id="perform-jogress">Perform Jogress</button>
-            <button id="back-to-menu-jogress">Back to Menu</button>
+            <select id="jogress-digimon1">
+                <option value="">Select First Digimon</option>
+            </select>
+            <select id="jogress-digimon2">
+                <option value="">Select Second Digimon</option>
+            </select>
+            <div>
+                <button id="perform-jogress">Perform Jogress</button>
+                <button id="back-to-menu-jogress">Back to Menu</button>
+            </div>
         </div>
 
         <div id="equip-manage-screen">
@@ -92,23 +104,24 @@
         <div id="battle-screen">
             <div class="battle-interface">
                 <div class="stats">
-                    <p>Player: <span id="player-name">None</span></p>
-                    <img id="player-sprite" src="" alt="Player Digimon">
-                    <p>Level: <span id="player-level">0</span></p>
-                    <p>HP: <span id="player-hp">0</span>/<span id="player-max-hp">0</span> <span id="player-hp-bonus"></span></p>
-                    <p>Attack: <span id="player-attack">0</span> <span id="player-attack-bonus"></span></p>
-                    <p>XP: <span id="player-xp">0</span>/<span id="player-xp-next">0</span></p>
+                    <div>Player: <span id="player-name">None</span></div>
+                    <img id="player-sprite" src="https://digi-api.com/images/default.png" alt="Player Digimon">
+                    <div>Level: <span id="player-level">0</span></div>
+                    <div>HP: <span id="player-hp">0</span>/<span id="player-max-hp">0</span> <span id="player-hp-bonus" class="hp-bonus"></span></div>
+                    <div>Attack: <span id="player-attack">0</span> <span id="player-attack-bonus" class="attack-bonus"></span></div>
+                    <div>XP: <span id="player-xp">0</span>/<span id="player-xp-next">0</span></div>
                     <div id="xp-bar"><div id="xp-progress"></div></div>
                 </div>
                 <div class="stats">
-                    <p>Opponent: <span id="opponent-name">None</span></p>
-                    <img id="opponent-sprite" src="" alt="Opponent Digimon">
-                    <p>Level: <span id="opponent-level">0</span></p>
-                    <p>HP: <span id="opponent-hp">0</span>/<span id="opponent-max-hp">0</span></p>
-                    <p>Attack: <span id="opponent-attack">0</span></p>
+                    <div>Opponent: <span id="opponent-name">None</span></div>
+                    <img id="opponent-sprite" src="https://digi-api.com/images/default.png" alt="Opponent Digimon">
+                    <div>Level: <span id="opponent-level">0</span></div>
+                    <div>HP: <span id="opponent-hp">0</span>/<span id="opponent-max-hp">0</span></div>
+                    <div>Attack: <span id="opponent-attack">0</span></div>
                 </div>
             </div>
-            <p><input type="checkbox" id="heal-toggle"> Heal on Victory (1 BIT = 5 HP)</p>
+            <label><input type="checkbox" id="heal-toggle"> Heal on Victory (1 BIT = 5 HP)</label>
+            <div id="battle-log"></div>
             <div id="timing-bar">
                 <div class="power-line power-line-20"></div>
                 <div class="power-line power-line-40"></div>
@@ -125,38 +138,38 @@
             <div id="attack-button-container">
                 <button id="attack-button">Attack</button>
             </div>
-            <div id="battle-log"></div>
             <button id="back-to-menu-battle">Menu</button>
         </div>
 
         <div id="shop-screen">
             <h2>Shop</h2>
-            <p>BIT: <span id="shop-bit-amount">0</span> | Jogress Shards: <span id="shop-jogress-shards">0</span></p>
+            <div>BIT: <span id="shop-bit-amount">0</span> | Jogress Shards: <span id="shop-jogress-shards">0</span></div>
             <div class="shop-item">
-                <p>Jogress Shard (2000 BIT)</p>
+                <div>Jogress Shard (2000 BIT)</div>
                 <button id="buy-jogress-shard">Buy</button>
             </div>
             <div class="shop-item">
-                <p>Attack Boost (+1) (10000 BIT)</p>
+                <div>Attack Boost (+1) (10000 BIT)</div>
                 <button id="buy-attack-boost">Buy One</button>
                 <button id="buy-attack-boost-half">Buy Half</button>
                 <button id="buy-attack-boost-all">Buy All</button>
             </div>
             <div class="shop-item">
-                <p>HP Boost (+5) (10000 BIT)</p>
+                <div>HP Boost (+5) (10000 BIT)</div>
                 <button id="buy-hp-boost">Buy One</button>
                 <button id="buy-hp-boost-half">Buy Half</button>
                 <button id="buy-hp-boost-all">Buy All</button>
             </div>
-            <button id="back-to-menu-shop">Back to Menu</button>
+            <button id="back-to-menu">Back to Menu</button>
         </div>
     </div>
+
     <script src="config.js"></script>
     <script src="data.js"></script>
     <script src="storage.js"></script>
     <script src="digimon.js"></script>
-    <script src="battle.js"></script>
     <script src="equipment.js"></script>
+    <script src="battle.js"></script>
     <script src="ui.js"></script>
     <script src="events.js"></script>
 </body>
