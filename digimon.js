@@ -2,27 +2,36 @@ async function hatchEgg(slotIndex) {
     let rookies = [];
     let page = 1;
     const pageSize = 100;
+    const levels = ["Child", "child"]; // Try Japanese-translated terms
 
-    // Fetch all Rookie Digimon across pages
-    while (true) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/digimon?level=Rookie&page=${page}&pageSize=${pageSize}`);
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            const data = await response.json();
-            if (!data.content || data.content.length === 0) break;
-            rookies = rookies.concat(data.content);
-            if (!data.pageable || data.pageable.nextPage === null) break;
-            page++;
-        } catch (error) {
-            logMessage("Failed to fetch Rookie Digimon. Using fallback.");
-            rookies = [{ name: "Agumon", baseStats: { hp: 100, attack: 20 }, images: [{ href: "https://digi-api.com/images/agumon.jpg" }], level: "Rookie" }];
-            break;
+    // Fetch Child Digimon across pages and level variations
+    for (const level of levels) {
+        while (true) {
+            try {
+                const response = await fetchWithRetry(`${API_BASE_URL}/digimon?level=${encodeURIComponent(level)}&page=${page}&pageSize=${pageSize}`);
+                if (!response.content || response.content.length === 0) break;
+                rookies = rookies.concat(response.content);
+                if (!response.pageable || response.pageable.nextPage === null) break;
+                page++;
+            } catch (error) {
+                logMessage(`Failed to fetch ${level} Digimon: ${error.message}`);
+                break;
+            }
         }
+        if (rookies.length > 0) break; // Exit if we got data
+        page = 1; // Reset page for next level attempt
     }
 
+    // Fallback if no rookies are fetched
     if (rookies.length === 0) {
-        logMessage("No Rookie Digimon available!");
-        return;
+        logMessage("No Child Digimon available, using fallback Agumon.");
+        rookies = [{
+            name: "Agumon",
+            baseStats: { hp: 100, attack: 20 },
+            images: [{ href: validateSpriteUrl("https://digi-api.com/images/agumon.jpg") }],
+            level: "Child",
+            priorEvolutions: []
+        }];
     }
 
     const digimon = rookies[Math.floor(Math.random() * rookies.length)];
@@ -36,16 +45,19 @@ async function hatchEgg(slotIndex) {
         xp: 0,
         totalXp: 0,
         xpNext: 100,
-        sprite: validateSpriteUrl(digimon.images?.[0]?.href),
+        sprite: validateSpriteUrl(digimon.images?.[0]?.href || FALLBACK_SPRITE),
         evolutions: digimon.priorEvolutions?.map(evo => ({ id: evo.id, name: evo.digimon, level: getEvolutionLevel(evo.level) })) || [],
         shopBonuses: { attack: 0, hp: 0 },
         rebirthBonuses: { attack: 0, hp: 0 },
         stage: "Rookie"
     };
+
     state.digimonSlots[slotIndex] = newDigimon;
     state.activeDigimonIndex = slotIndex;
-    showMenu();
     logMessage(`A ${newDigimon.name} hatched in slot ${slotIndex + 1}!`);
+    showMenu();
+    updateUI();
+    saveProgress(true);
 }
 
 function buySlot(slotIndex) {
@@ -60,8 +72,6 @@ function buySlot(slotIndex) {
     }
     state.bit -= cost;
     hatchEgg(slotIndex);
-    updateUI();
-    saveProgress();
 }
 
 function buyAttackBoost() {
@@ -159,26 +169,34 @@ async function rebirthDigimon(slotIndex) {
     let rookies = [];
     let page = 1;
     const pageSize = 100;
+    const levels = ["Child", "child"];
 
-    while (true) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/digimon?level=Rookie&page=${page}&pageSize=${pageSize}`);
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            const data = await response.json();
-            if (!data.content || data.content.length === 0) break;
-            rookies = rookies.concat(data.content);
-            if (!data.pageable || data.pageable.nextPage === null) break;
-            page++;
-        } catch (error) {
-            logMessage("Failed to fetch Rookie Digimon. Using fallback.");
-            rookies = [{ name: "Agumon", baseStats: { hp: 100, attack: 20 }, images: [{ href: "https://digi-api.com/images/agumon.jpg" }], level: "Rookie" }];
-            break;
+    for (const level of levels) {
+        while (true) {
+            try {
+                const response = await fetchWithRetry(`${API_BASE_URL}/digimon?level=${encodeURIComponent(level)}&page=${page}&pageSize=${pageSize}`);
+                if (!response.content || response.content.length === 0) break;
+                rookies = rookies.concat(response.content);
+                if (!response.pageable || response.pageable.nextPage === null) break;
+                page++;
+            } catch (error) {
+                logMessage(`Failed to fetch ${level} Digimon: ${error.message}`);
+                break;
+            }
         }
+        if (rookies.length > 0) break;
+        page = 1;
     }
 
     if (rookies.length === 0) {
-        logMessage("No Rookie Digimon available!");
-        return;
+        logMessage("No Child Digimon available, using fallback Agumon.");
+        rookies = [{
+            name: "Agumon",
+            baseStats: { hp: 100, attack: 20 },
+            images: [{ href: validateSpriteUrl("https://digi-api.com/images/agumon.jpg") }],
+            level: "Child",
+            priorEvolutions: []
+        }];
     }
 
     const newDigimon = rookies[Math.floor(Math.random() * rookies.length)];
@@ -195,7 +213,7 @@ async function rebirthDigimon(slotIndex) {
         xp: 0,
         totalXp: digimon.totalXp,
         xpNext: 100,
-        sprite: validateSpriteUrl(newDigimon.images?.[0]?.href),
+        sprite: validateSpriteUrl(newDigimon.images?.[0]?.href || FALLBACK_SPRITE),
         evolutions: newDigimon.priorEvolutions?.map(evo => ({ id: evo.id, name: evo.digimon, level: getEvolutionLevel(evo.level) })) || [],
         shopBonuses: { attack: digimon.shopBonuses.attack, hp: digimon.shopBonuses.hp },
         rebirthBonuses: { attack: digimon.rebirthBonuses.attack + newAttackBonus, hp: digimon.rebirthBonuses.hp + newMaxHpBonus },
@@ -224,8 +242,8 @@ async function checkEvolution(slotIndex) {
             return;
         }
         digimon.name = evolvedDigimon.name;
-        digimon.sprite = validateSpriteUrl(evolvedDigimon.images?.[0]?.href);
-        digimon.stage = evolvedDigimon.level === "Champion" ? "Champion" : evolvedDigimon.level === "Ultimate" ? "Ultimate" : "Mega";
+        digimon.sprite = validateSpriteUrl(evolvedDigimon.images?.[0]?.href || FALLBACK_SPRITE);
+        digimon.stage = evolvedDigimon.level === "Adult" ? "Champion" : evolvedDigimon.level === "Perfect" ? "Ultimate" : "Mega";
         const newMultiplier = getStatMultiplier(digimon.stage);
         const oldMultiplier = getStatMultiplier(oldStage);
         digimon.maxHp = Math.floor((digimon.maxHp / oldMultiplier) * newMultiplier);
@@ -239,10 +257,10 @@ async function checkEvolution(slotIndex) {
 
 function getEvolutionLevel(level) {
     const levelMap = {
-        "Rookie": 50,
-        "Champion": 500,
-        "Ultimate": 5000,
-        "Mega": 5000
+        "Child": 50,
+        "Adult": 500,
+        "Perfect": 5000,
+        "Ultimate": 5000
     };
     return levelMap[level] || 5000;
 }
@@ -286,7 +304,7 @@ async function jogress(slotIndex1, slotIndex2) {
         xp: 0,
         totalXp: digimon1.totalXp + digimon2.totalXp,
         xpNext: 100 * newLevel,
-        sprite: jogressDigimon ? validateSpriteUrl(jogressDigimon.images?.[0]?.href) : pair.result.sprite,
+        sprite: jogressDigimon ? validateSpriteUrl(jogressDigimon.images?.[0]?.href || FALLBACK_SPRITE) : pair.result.sprite,
         evolutions: jogressDigimon?.priorEvolutions?.map(evo => ({ id: evo.id, name: evo.digimon, level: getEvolutionLevel(evo.level) })) || [],
         shopBonuses: { attack: digimon1.shopBonuses.attack + digimon2.shopBonuses.attack, hp: digimon1.shopBonuses.hp + digimon2.shopBonuses.hp },
         rebirthBonuses: { attack: digimon1.rebirthBonuses.attack + digimon2.rebirthBonuses.attack, hp: digimon1.rebirthBonuses.hp + digimon2.rebirthBonuses.hp },
