@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded, attaching events'); // Temporary debug, remove after testing
+
     const buttons = {
         'start-normal-fight': () => startBattle(),
         'start-boss-fight': () => startBattle(true),
@@ -33,11 +35,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const buyButtons = document.querySelectorAll('.slot button');
-    buyButtons.forEach(button => {
-        const slotIndex = parseInt(button.parentElement.textContent.match(/\d+/)[0]) - 1;
-        button.addEventListener('click', () => buySlot(slotIndex));
-        console.log(`Attached buy event to slot ${slotIndex + 1}`); // Temporary debug, remove after testing
-    });
+    if (buyButtons.length > 0) {
+        buyButtons.forEach(button => {
+            const slotIndex = parseInt(button.parentElement.textContent.match(/\d+/)[0]) - 1;
+            if (!isNaN(slotIndex)) {
+                button.addEventListener('click', () => buySlot(slotIndex));
+                console.log(`Attached buy event to slot ${slotIndex + 1}`); // Temporary debug, remove after testing
+            } else {
+                console.log(`Invalid slot index for button in ${button.parentElement.textContent}`);
+            }
+        });
+    } else {
+        console.log('No .slot button elements found');
+    }
 
     const combatModeSelect = document.getElementById('combat-mode-select');
     if (combatModeSelect) {
