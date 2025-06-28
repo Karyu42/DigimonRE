@@ -24,7 +24,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     Object.entries(buttons).forEach(([id, handler]) => {
         const button = document.getElementById(id);
-        if (button) button.addEventListener('click', handler);
+        if (button) {
+            button.addEventListener('click', handler);
+            console.log(`Attached event to #${id}`); // Temporary debug, remove after testing
+        } else {
+            console.log(`Button #${id} not found`); // Temporary debug, remove after testing
+        }
+    });
+
+    const buyButtons = document.querySelectorAll('.slot button');
+    buyButtons.forEach(button => {
+        const slotIndex = parseInt(button.parentElement.textContent.match(/\d+/)[0]) - 1;
+        button.addEventListener('click', () => buySlot(slotIndex));
+        console.log(`Attached buy event to slot ${slotIndex + 1}`); // Temporary debug, remove after testing
     });
 
     const combatModeSelect = document.getElementById('combat-mode-select');

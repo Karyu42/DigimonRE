@@ -2,32 +2,34 @@ async function hatchEgg(slotIndex) {
     let rookies = [];
     let page = 1;
     const pageSize = 100;
-    const levels = ["Child", "child"]; // Use Japanese-translated terms
+    const levels = ["Child", "child"];
 
-    // Fetch Child Digimon across pages and level variations
-    for (const level of levels) {
-        while (true) {
-            try {
-                logMessage(`Attempting to fetch Digimon for level ${level}, page ${page}`);
-                const response = await fetchWithRetry(`${API_BASE_URL}/digimon?level=${encodeURIComponent(level)}&page=${page}&pageSize=${pageSize}`);
-                if (!response.content || response.content.length === 0) {
-                    break;
-                }
+    try {
+        for (const level of levels) {
+            logMessage(`Attempting to fetch Digimon for level ${level}, page ${page}`);
+            const response = await fetchWithRetry(`${API_BASE_URL}/digimon?level=${encodeURIComponent(level)}&page=${page}&pageSize=${pageSize}`);
+            if (response.content && response.content.length > 0) {
                 rookies = rookies.concat(response.content);
-                if (!response.pageable || !response.pageable.nextPage) break;
-                page++;
-            } catch (error) {
-                logMessage(`Failed to fetch ${level} Digimon on page ${page}: ${error.message}`);
+                while (response.pageable && response.pageable.nextPage) {
+                    page++;
+                    const nextResponse = await fetchWithRetry(response.pageable.nextPage);
+                    if (nextResponse.content && nextResponse.content.length > 0) {
+                        rookies = rookies.concat(nextResponse.content);
+                    } else {
+                        break;
+                    }
+                }
                 break;
             }
         }
-        if (rookies.length > 0) break; // Exit if data is found
-        page = 1; // Reset for next level
+    } catch (error) {
+        logMessage(`Failed to fetch Digimon: ${error.message}`);
+        return;
     }
 
     if (rookies.length === 0) {
-        logMessage("No Child Digimon data available from API.");
-        return; // Fail gracefully without fallback
+        logMessage("No Digimon data available from API.");
+        return;
     }
 
     const digimon = rookies[Math.floor(Math.random() * rookies.length)];
@@ -167,29 +169,32 @@ async function rebirthDigimon(slotIndex) {
     const pageSize = 100;
     const levels = ["Child", "child"];
 
-    for (const level of levels) {
-        while (true) {
-            try {
-                logMessage(`Attempting to fetch Digimon for level ${level}, page ${page}`);
-                const response = await fetchWithRetry(`${API_BASE_URL}/digimon?level=${encodeURIComponent(level)}&page=${page}&pageSize=${pageSize}`);
-                if (!response.content || response.content.length === 0) {
-                    break;
-                }
+    try {
+        for (const level of levels) {
+            logMessage(`Attempting to fetch Digimon for level ${level}, page ${page}`);
+            const response = await fetchWithRetry(`${API_BASE_URL}/digimon?level=${encodeURIComponent(level)}&page=${page}&pageSize=${pageSize}`);
+            if (response.content && response.content.length > 0) {
                 rookies = rookies.concat(response.content);
-                if (!response.pageable || !response.pageable.nextPage) break;
-                page++;
-            } catch (error) {
-                logMessage(`Failed to fetch ${level} Digimon on page ${page}: ${error.message}`);
+                while (response.pageable && response.pageable.nextPage) {
+                    page++;
+                    const nextResponse = await fetchWithRetry(response.pageable.nextPage);
+                    if (nextResponse.content && nextResponse.content.length > 0) {
+                        rookies = rookies.concat(nextResponse.content);
+                    } else {
+                        break;
+                    }
+                }
                 break;
             }
         }
-        if (rookies.length > 0) break;
-        page = 1;
+    } catch (error) {
+        logMessage(`Failed to fetch Digimon: ${error.message}`);
+        return;
     }
 
     if (rookies.length === 0) {
         logMessage("No Child Digimon data available from API.");
-        return; // Fail gracefully without fallback
+        return;
     }
 
     const newDigimon = rookies[Math.floor(Math.random() * rookies.length)];
