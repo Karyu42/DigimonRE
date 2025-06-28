@@ -2,36 +2,32 @@ async function hatchEgg(slotIndex) {
     let rookies = [];
     let page = 1;
     const pageSize = 100;
-    const levels = ["Child", "child"]; // Try Japanese-translated terms
+    const levels = ["Child", "child"]; // Use Japanese-translated terms
 
     // Fetch Child Digimon across pages and level variations
     for (const level of levels) {
         while (true) {
             try {
+                logMessage(`Attempting to fetch Digimon for level ${level}, page ${page}`);
                 const response = await fetchWithRetry(`${API_BASE_URL}/digimon?level=${encodeURIComponent(level)}&page=${page}&pageSize=${pageSize}`);
-                if (!response.content || response.content.length === 0) break;
+                if (!response.content || response.content.length === 0) {
+                    break;
+                }
                 rookies = rookies.concat(response.content);
-                if (!response.pageable || response.pageable.nextPage === null) break;
+                if (!response.pageable || !response.pageable.nextPage) break;
                 page++;
             } catch (error) {
-                logMessage(`Failed to fetch ${level} Digimon: ${error.message}`);
+                logMessage(`Failed to fetch ${level} Digimon on page ${page}: ${error.message}`);
                 break;
             }
         }
-        if (rookies.length > 0) break; // Exit if we got data
-        page = 1; // Reset page for next level attempt
+        if (rookies.length > 0) break; // Exit if data is found
+        page = 1; // Reset for next level
     }
 
-    // Fallback if no rookies are fetched
     if (rookies.length === 0) {
-        logMessage("No Child Digimon available, using fallback Agumon.");
-        rookies = [{
-            name: "Agumon",
-            baseStats: { hp: 100, attack: 20 },
-            images: [{ href: validateSpriteUrl("https://digi-api.com/images/agumon.jpg") }],
-            level: "Child",
-            priorEvolutions: []
-        }];
+        logMessage("No Child Digimon data available from API.");
+        return; // Fail gracefully without fallback
     }
 
     const digimon = rookies[Math.floor(Math.random() * rookies.length)];
@@ -174,13 +170,16 @@ async function rebirthDigimon(slotIndex) {
     for (const level of levels) {
         while (true) {
             try {
+                logMessage(`Attempting to fetch Digimon for level ${level}, page ${page}`);
                 const response = await fetchWithRetry(`${API_BASE_URL}/digimon?level=${encodeURIComponent(level)}&page=${page}&pageSize=${pageSize}`);
-                if (!response.content || response.content.length === 0) break;
+                if (!response.content || response.content.length === 0) {
+                    break;
+                }
                 rookies = rookies.concat(response.content);
-                if (!response.pageable || response.pageable.nextPage === null) break;
+                if (!response.pageable || !response.pageable.nextPage) break;
                 page++;
             } catch (error) {
-                logMessage(`Failed to fetch ${level} Digimon: ${error.message}`);
+                logMessage(`Failed to fetch ${level} Digimon on page ${page}: ${error.message}`);
                 break;
             }
         }
@@ -189,14 +188,8 @@ async function rebirthDigimon(slotIndex) {
     }
 
     if (rookies.length === 0) {
-        logMessage("No Child Digimon available, using fallback Agumon.");
-        rookies = [{
-            name: "Agumon",
-            baseStats: { hp: 100, attack: 20 },
-            images: [{ href: validateSpriteUrl("https://digi-api.com/images/agumon.jpg") }],
-            level: "Child",
-            priorEvolutions: []
-        }];
+        logMessage("No Child Digimon data available from API.");
+        return; // Fail gracefully without fallback
     }
 
     const newDigimon = rookies[Math.floor(Math.random() * rookies.length)];
