@@ -110,12 +110,13 @@ function updateMenu() {
         slotDiv.className = `slot ${index === state.activeDigimonIndex ? 'active' : ''}`;
         if (digimon) {
             const img = document.createElement("img");
-            img.src = digimon.sprite;
+            img.src = validateSpriteUrl(digimon.sprite);
             img.alt = digimon.name;
             img.style.width = "60px";
             img.style.height = "60px";
             img.style.cursor = "pointer";
             img.title = "Click to view Digimon info";
+            img.onerror = () => { img.src = FALLBACK_SPRITE; };
             img.onclick = () => showDigimonInfo(index);
 
             const nameP = document.createElement("p");
@@ -212,7 +213,10 @@ function updateUI() {
     const player = state.digimonSlots[state.activeDigimonIndex];
     if (player) {
         if (playerName) playerName.textContent = player.name;
-        if (playerSprite) playerSprite.src = player.sprite;
+        if (playerSprite) {
+            playerSprite.src = validateSpriteUrl(player.sprite);
+            playerSprite.onerror = () => { playerSprite.src = FALLBACK_SPRITE; };
+        }
         if (playerLevel) playerLevel.textContent = player.level;
         const equipHpBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.baseStats.hp || 0), 0) +
             Math.floor(player.maxHp * state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'maxHp')?.value || 0), 0) / 100);
@@ -242,7 +246,7 @@ function updateUI() {
         if (playerHpBonus) playerHpBonus.innerHTML = hpBonusText.join(" ");
     } else {
         if (playerName) playerName.textContent = "None";
-        if (playerSprite) playerSprite.src = "";
+        if (playerSprite) playerSprite.src = FALLBACK_SPRITE;
         if (playerLevel) playerLevel.textContent = "";
         if (playerHp) playerHp.textContent = "0";
         if (playerMaxHp) playerMaxHp.textContent = "0";
@@ -258,14 +262,17 @@ function updateUI() {
 
     if (state.opponent) {
         if (opponentName) opponentName.textContent = state.opponent.name;
-        if (opponentSprite) opponentSprite.src = state.opponent.sprite;
+        if (opponentSprite) {
+            opponentSprite.src = validateSpriteUrl(state.opponent.sprite);
+            opponentSprite.onerror = () => { opponentSprite.src = FALLBACK_SPRITE; };
+        }
         if (opponentLevel) opponentLevel.textContent = state.opponent.level;
         if (opponentHp) opponentHp.textContent = state.opponent.hp;
         if (opponentMaxHp) opponentMaxHp.textContent = state.opponent.maxHp;
         if (opponentAttack) opponentAttack.textContent = state.opponent.attack;
     } else {
         if (opponentName) opponentName.textContent = "None";
-        if (opponentSprite) opponentSprite.src = "";
+        if (opponentSprite) opponentSprite.src = FALLBACK_SPRITE;
         if (opponentLevel) opponentLevel.textContent = "";
         if (opponentHp) opponentHp.textContent = "0";
         if (opponentMaxHp) opponentMaxHp.textContent = "0";
@@ -445,21 +452,16 @@ function resetGame() {
         state.animationFrame = null;
     }
     document.removeEventListener("keydown", handleKeyPress);
-    if (typeof resetState === 'function') {
-        resetState();
-        localStorage.removeItem(STORAGE_KEY);
-        const screens = ["battle-screen", "menu-screen", "shop-screen", "jogress-screen", "equip-manage-screen"];
-        screens.forEach(screen => {
-            const element = document.getElementById(screen);
-            if (element) element.style.display = screen === "menu-screen" ? "block" : "none";
-        });
-        const battleLog = document.getElementById("battle-log");
-        if (battleLog) battleLog.innerHTML = "";
-        updateUI();
-    } else {
-        console.error("resetState is not defined. Ensure storage.js is loaded correctly.");
-        logMessage("Failed to reset game: system error. Please refresh the page.");
-    }
+    resetState();
+    localStorage.removeItem(STORAGE_KEY);
+    const screens = ["battle-screen", "menu-screen", "shop-screen", "jogress-screen", "equip-manage-screen"];
+    screens.forEach(screen => {
+        const element = document.getElementById(screen);
+        if (element) element.style.display = screen === "menu-screen" ? "block" : "none";
+    });
+    const battleLog = document.getElementById("battle-log");
+    if (battleLog) battleLog.innerHTML = "";
+    updateUI();
 }
 
 function logMessage(message) {
@@ -469,8 +471,6 @@ function logMessage(message) {
         p.textContent = message;
         log.appendChild(p);
         log.scrollTop = log.scrollHeight;
-    } else {
-        console.log(`Log message: ${message}`);
     }
 }
 
@@ -493,13 +493,8 @@ function handleLoadGame(file) {
 
 document.addEventListener('DOMContentLoaded', () => {
     isInitialLoad = true;
-    if (typeof resetState === 'function') {
-        resetState(true);
-        loadFromLocalStorage();
-    } else {
-        console.error("resetState is not defined. Ensure storage.js is loaded correctly.");
-        logMessage("Failed to initialize game: system error. Please refresh the page.");
-    }
+    resetState(true);
+    loadFromLocalStorage();
     const screens = ["battle-screen", "shop-screen", "jogress-screen", "equip-manage-screen", "menu-screen"];
     screens.forEach(screen => {
         const element = document.getElementById(screen);
@@ -507,10 +502,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     updateUI();
     isInitialLoad = false;
-
-    document.querySelectorAll('button').forEach(button => {
-        if (!button.onclick && !button.disabled) {
-            console.warn(`Button "${button.textContent}" has no onclick handler.`);
-        }
-    });
 });
