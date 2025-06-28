@@ -8,43 +8,61 @@ function getStatMultiplier(stage) {
     }[stage] || 1;
 }
 
-function hatchEgg(slotIndex) {
-    const rookieNames = Object.keys(digimonData).filter(name => digimonData[name]?.stage === "Rookie");
-    const randomIndex = Math.floor(Math.random() * rookieNames.length);
-    let name = rookieNames[randomIndex] || "Agumon";
-
-    const baseDigimon = digimonData[name] || {
-        sprite: "https://digimon-api.com/images/digimon/Agumon.png",
-        evolutions: [
-            { name: "Greymon", level: 50, sprite: "https://digimon-api.com/images/digimon/Greymon.png" },
-            { name: "MetalGreymon", level: 200, sprite: "https://digimon-api.com/images/digimon/MetalGreymon.png" },
-            { name: "WarGreymon", level: 1000, sprite: "https://digimon-api.com/images/digimon/WarGreymon.png" }
-        ],
-        baseStats: { hp: 80, attack: 20 },
-        stage: "Rookie",
-        nextEvolutions: []
-    };
-
-    const multiplier = getStatMultiplier(baseDigimon.stage);
-    const newDigimon = {
-        name,
-        level: 1,
-        hp: baseDigimon.baseStats.hp * multiplier,
-        maxHp: baseDigimon.baseStats.hp * multiplier,
-        attack: baseDigimon.baseStats.attack * multiplier,
-        xp: 0,
-        totalXp: 0,
-        xpNext: 100,
-        sprite: baseDigimon.sprite,
-        evolutions: baseDigimon.evolutions,
-        shopBonuses: { attack: 0, hp: 0 },
-        rebirthBonuses: { attack: 0, hp: 0 },
-        stage: baseDigimon.stage
-    };
-    state.digimonSlots[slotIndex] = newDigimon;
-    state.activeDigimonIndex = slotIndex;
-    showMenu();
-    logMessage(`A ${newDigimon.name} hatched in slot ${slotIndex + 1}!`);
+async function hatchEgg(slotIndex) {
+    try {
+        const response = await fetch(`/api/digimon?level=Rookie`);
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        const data = await response.json();
+        const rookies = data.filter(d => normalizeStage(d.level) === "Rookie");
+        const randomDigimon = rookies[Math.floor(Math.random() * rookies.length)] || digimonData["Agumon"];
+        const multiplier = getStatMultiplier(normalizeStage(randomDigimon.level) || "Rookie");
+        const newDigimon = {
+            name: randomDigimon.name,
+            level: 1,
+            hp: (BASE_STATS.Rookie.hp || 80) * multiplier,
+            maxHp: (BASE_STATS.Rookie.hp || 80) * multiplier,
+            attack: (BASE_STATS.Rookie.attack || 20) * multiplier,
+            xp: 0,
+            totalXp: 0,
+            xpNext: 100,
+            sprite: randomDigimon.images[0]?.href || `https://via.placeholder.com/60?text=${encodeURIComponent(randomDigimon.name)}`,
+            evolutions: digimonData[randomDigimon.name]?.evolutions || [],
+            shopBonuses: { attack: 0, hp: 0 },
+            rebirthBonuses: { attack: 0, hp: 0 },
+            stage: normalizeStage(randomDigimon.level) || "Rookie"
+        };
+        state.digimonSlots[slotIndex] = newDigimon;
+        state.activeDigimonIndex = slotIndex;
+        showMenu();
+        logMessage(`A ${newDigimon.name} hatched in slot ${slotIndex + 1}!`);
+        updateUI();
+        saveProgress();
+    } catch (error) {
+        console.error("Error hatching egg:", error);
+        logMessage("Failed to hatch Digimon. Using default Agumon.");
+        const baseDigimon = digimonData["Agumon"];
+        const multiplier = getStatMultiplier(baseDigimon.stage);
+        state.digimonSlots[slotIndex] = {
+            name: "Agumon",
+            level: 1,
+            hp: baseDigimon.baseStats.hp * multiplier,
+            maxHp: baseDigimon.baseStats.hp * multiplier,
+            attack: baseDigimon.baseStats.attack * multiplier,
+            xp: 0,
+            totalXp: 0,
+            xpNext: 100,
+            sprite: baseDigimon.sprite,
+            evolutions: baseDigimon.evolutions,
+            shopBonuses: { attack: 0, hp: 0 },
+            rebirthBonuses: { attack: 0, hp: 0 },
+            stage: baseDigimon.stage
+        };
+        state.activeDigimonIndex = slotIndex;
+        showMenu();
+        logMessage(`A Agumon hatched in slot ${slotIndex + 1}!`);
+        updateUI();
+        saveProgress();
+    }
 }
 
 function buySlot(slotIndex) {
@@ -59,8 +77,6 @@ function buySlot(slotIndex) {
     }
     state.bit -= cost;
     hatchEgg(slotIndex);
-    updateUI();
-    saveProgress();
 }
 
 function buyAttackBoost() {
@@ -88,7 +104,7 @@ function buyAttackBoostBulk(amount) {
         logMessage(`No active Digimon selected! Select a Digimon first.`);
         return;
     }
-    let maxAffordable = math.floor(state.bit / costPerBoost);
+    let maxAffordable = Math.floor(state.bit / costPerBoost);
     let numBoosts;
     if (amount === 'half') {
         numBoosts = Math.floor(maxAffordable / 2);

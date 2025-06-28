@@ -1,4 +1,4 @@
-function createOpponent(isBoss) {
+async function createOpponent(isBoss) {
     console.log("Creating opponent for stage:", state.selectedEnemyStage, "isBoss:", isBoss);
     const activeDigimon = state.digimonSlots[state.activeDigimonIndex];
     if (!activeDigimon) {
@@ -11,14 +11,37 @@ function createOpponent(isBoss) {
     let stageMultiplier = 1;
     let bitMultiplier = 1;
 
-    if (stage === "Ultra") {
-        possibleDigimon = [
-            { name: "Omnimon", baseStats: { hp: 240, attack: 60 }, sprite: "https://digimon-api.com/images/digimon/Omnimon.png", stage: "Ultra" },
-            { name: "Imperialdramon", baseStats: { hp: 240, attack: 60 }, sprite: "https://digimon-api.com/images/digimon/Imperialdramon.png", stage: "Ultra" }
-        ];
-        stageMultiplier = 200;
-        bitMultiplier = 12;
-    } else {
+    try {
+        const response = await fetch(`/api/digimon?level=${stage}`);
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        const data = await response.json();
+        possibleDigimon = data.map(d => ({
+            name: d.name,
+            baseStats: BASE_STATS[normalizeStage(d.level)] || BASE_STATS.Rookie,
+            sprite: d.images[0]?.href || `https://via.placeholder.com/60?text=${encodeURIComponent(d.name)}`,
+            stage: normalizeStage(d.level)
+        }));
+
+        if (stage === "Ultra") {
+            possibleDigimon = possibleDigimon.length > 0 ? possibleDigimon : [
+                { name: "Omnimon", baseStats: { hp: 240, attack: 60 }, sprite: "https://digimon-api.com/images/digimon/Omnimon.png", stage: "Ultra" },
+                { name: "Imperialdramon", baseStats: { hp: 240, attack: 60 }, sprite: "https://digimon-api.com/images/digimon/Imperialdramon.png", stage: "Ultra" }
+            ];
+            stageMultiplier = 200;
+            bitMultiplier = 12;
+        } else if (stage === "Champion") {
+            stageMultiplier = 2;
+            bitMultiplier = 2;
+        } else if (stage === "Ultimate") {
+            stageMultiplier = 4;
+            bitMultiplier = 4;
+        } else if (stage === "Mega") {
+            stageMultiplier = 16;
+            bitMultiplier = 8;
+        }
+    } catch (error) {
+        console.error("Error fetching opponents from API:", error);
+        logMessage(`Failed to fetch ${stage} Digimon. Using fallback data.`);
         const rookieNames = Object.keys(digimonData).filter(name => digimonData[name]?.stage === "Rookie");
         for (const name of rookieNames) {
             const data = digimonData[name];
@@ -41,16 +64,6 @@ function createOpponent(isBoss) {
                     }
                 }
             }
-        }
-        if (stage === "Champion") {
-            stageMultiplier = 2;
-            bitMultiplier = 2;
-        } else if (stage === "Ultimate") {
-            stageMultiplier = 4;
-            bitMultiplier = 4;
-        } else if (stage === "Mega") {
-            stageMultiplier = 16;
-            bitMultiplier = 8;
         }
     }
 
@@ -266,7 +279,7 @@ function performAttack(isAuto, clickX, clickY) {
         }
         saveProgress(true);
         if (!state.opponent.name.endsWith("(Boss)")) {
-            state.opponent = createOpponent(false);
+            state.opponent = await createOpponent(false);
             logMessage(`New opponent: ${state.opponent.name}!`);
             if (state.combatMode === "precision") {
                 state.targetPositions = prevTargetPositions;
@@ -413,14 +426,14 @@ function attack(event) {
     }
 }
 
-function startBattle(isBoss) {
+async function startBattle(isBoss) {
     console.log("Starting battle, isBoss:", isBoss);
     if (state.activeDigimonIndex === null) {
         logMessage("No active Digimon selected! Please select a Digimon first.");
         return;
     }
     state.selectedEnemyStage = document.getElementById("enemy-stage-select").value;
-    state.opponent = createOpponent(isBoss);
+    state.opponent = await createOpponent(isBoss);
     if (!state.opponent) {
         logMessage("Failed to create opponent for this stage!");
         return;
@@ -453,7 +466,6 @@ function startBattle(isBoss) {
     logMessage(`Battle vs ${state.opponent.name} begins!`);
 
     const timingBar = document.getElementById("timing-bar");
-    const marker = document.getElementById("marker");
     const field = document.getElementById("precision-field");
     const attackButtonContainer = document.getElementById("attack-button-container");
 

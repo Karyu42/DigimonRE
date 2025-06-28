@@ -53,8 +53,30 @@ let digimonData = {
     }
 };
 
-function fetchDigimon(name) {
-    return digimonData[name] || null;
+async function fetchDigimonFromAPI(name) {
+    try {
+        const response = await fetch(`/api/digimon?name=${encodeURIComponent(name)}`);
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        const data = await response.json();
+        const digimon = data[0];
+        if (!digimon) return null;
+        return {
+            name: digimon.name,
+            sprite: digimon.images[0]?.href || `https://via.placeholder.com/60?text=${encodeURIComponent(digimon.name)}`,
+            baseStats: BASE_STATS[normalizeStage(digimon.level)] || BASE_STATS.Rookie,
+            stage: normalizeStage(digimon.level),
+            evolutions: [] // API doesn't provide evolutions, use hardcoded if needed
+        };
+    } catch (error) {
+        logMessage(`API Error: Failed to fetch ${name}.`);
+        console.error(`Failed to fetch Digimon ${name}:`, error);
+        return null;
+    }
+}
+
+async function fetchDigimon(name) {
+    const apiData = await fetchDigimonFromAPI(name);
+    return apiData || digimonData[name] || null;
 }
 
 function normalizeStage(apiLevel) {
@@ -64,7 +86,7 @@ function normalizeStage(apiLevel) {
         case "Ultimate": return "Ultimate";
         case "Mega": return "Mega";
         case "Ultra": return "Ultra";
-        default: return null;
+        default: return "Rookie";
     }
 }
 
@@ -114,7 +136,7 @@ function generateJogressPairs() {
                             digimon2: partner,
                             result: {
                                 name: evo.digimon,
-                                sprite: digimonData[evo.digimon]?.sprite || "https://digimon-api.com/images/digimon/" + encodeURIComponent(evo.digimon) + ".png",
+                                sprite: digimonData[evo.digimon]?.sprite || "https://via.placeholder.com/60?text=" + encodeURIComponent(evo.digimon),
                                 baseStats: { ...BASE_STATS[evoStage] }
                             },
                             minStage: digimon.stage,
@@ -220,3 +242,5 @@ function isValidUrl(url) {
         return false;
     }
 }
+
+console.log("data.js loaded successfully.");

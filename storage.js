@@ -12,7 +12,7 @@ function resetState(isInitial = false) {
     window.state = window.state || {};
     state.digimonSlots = [null, null, null, null, null];
     state.activeDigimonIndex = null;
-    state.bit = 0;
+    state.bit = 1000; // Align with config.js initial BIT
     state.jogressShards = 0;
     state.opponent = null;
     state.battleActive = false;
@@ -20,7 +20,13 @@ function resetState(isInitial = false) {
     state.selectedEnemyStage = "Rookie";
     state.combatMode = "charging";
     state.healOnVictory = false;
-    state.ringInventory = [];
+    state.ringInventory = [
+        {
+            name: "Starter Ring",
+            baseStats: { attack: 1, hp: 5 },
+            effects: [{ type: "maxHp", value: 5 }]
+        }
+    ];
     state.equipmentSlots = [null, null, null, null, null];
     state.currentEquipSlot = 0;
     state.globalAfkInterval = null;
@@ -72,7 +78,7 @@ function loadFromLocalStorage() {
             const parsed = JSON.parse(saveData);
             state.digimonSlots = parsed.digimonSlots || [null, null, null, null, null];
             state.activeDigimonIndex = parsed.activeDigimonIndex || null;
-            state.bit = parsed.bit || 0;
+            state.bit = parsed.bit || 1000;
             state.jogressShards = parsed.jogressShards || 0;
             state.selectedEnemyStage = parsed.selectedEnemyStage || "Rookie";
             state.combatMode = parsed.combatMode || "charging";
@@ -114,12 +120,22 @@ function exportSave() {
 
 function loadProgress(file) {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
         try {
             const parsed = JSON.parse(e.target.result);
             state.digimonSlots = parsed.digimonSlots || [null, null, null, null, null];
+            // Validate Digimon data against API or fallback
+            for (let i = 0; i < state.digimonSlots.length; i++) {
+                if (state.digimonSlots[i]) {
+                    const digimonData = await fetchDigimon(state.digimonSlots[i].name);
+                    if (digimonData) {
+                        state.digimonSlots[i].sprite = digimonData.sprite;
+                        state.digimonSlots[i].stage = digimonData.stage;
+                    }
+                }
+            }
             state.activeDigimonIndex = parsed.activeDigimonIndex || null;
-            state.bit = parsed.bit || 0;
+            state.bit = parsed.bit || 1000;
             state.jogressShards = parsed.jogressShards || 0;
             state.selectedEnemyStage = parsed.selectedEnemyStage || "Rookie";
             state.combatMode = parsed.combatMode || "charging";
@@ -129,7 +145,7 @@ function loadProgress(file) {
             state.currentEquipSlot = parsed.currentEquipSlot || 0;
             state.afkModes = parsed.afkModes || [null, null, null, null, null];
             saveProgress(true);
-            updateUI();
+            await updateUI();
             logMessage("Save file imported successfully!");
         } catch (error) {
             console.error("Error importing save:", error);

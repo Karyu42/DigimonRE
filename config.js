@@ -7,12 +7,12 @@ const XP_CAPS = {
 };
 
 let state = {
-    digimonSlots: Array(10).fill(null),
+    digimonSlots: Array(5).fill(null), // Reduced to 5 slots to match storage.js
     activeDigimonIndex: null,
     opponent: null,
     bit: 1000,
     jogressShards: 0,
-    afkModes: Array(10).fill(null),
+    afkModes: Array(5).fill(null), // Match digimonSlots length
     globalAfkInterval: null,
     healOnVictory: false,
     selectedEnemyStage: "Rookie",

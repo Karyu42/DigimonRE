@@ -7,7 +7,7 @@ function toggleHealing() {
     }
 }
 
-function populateJogressDropdowns() {
+async function populateJogressDropdowns() {
     const dropdown1 = document.getElementById("jogress-digimon1");
     const dropdown2 = document.getElementById("jogress-digimon2");
     if (!dropdown1 || !dropdown2) return;
@@ -15,13 +15,15 @@ function populateJogressDropdowns() {
     dropdown1.innerHTML = '<option value="">Select First Digimon</option>';
     dropdown2.innerHTML = '<option value="">Select Second Digimon</option>';
 
-    state.digimonSlots.forEach((digimon, index) => {
+    for (let index = 0; index < state.digimonSlots.length; index++) {
+        const digimon = state.digimonSlots[index];
         if (digimon) {
-            const option = `<option value="${index}">${digimon.name} (${digimon.stage})</option>`;
+            const digimonData = await fetchDigimon(digimon.name);
+            const option = `<option value="${index}">${digimon.name} (${digimonData?.stage || digimon.stage})</option>`;
             dropdown1.innerHTML += option;
             dropdown2.innerHTML += option;
         }
-    });
+    }
 
     dropdown1.onchange = () => {
         const selectedIndex = parseInt(dropdown1.value);
@@ -80,7 +82,7 @@ function setActiveDigimon(index) {
     saveProgress(true);
 }
 
-function updateMenu() {
+async function updateMenu() {
     const menuPlayerName = document.getElementById("menu-player-name");
     const menuPlayerLevel = document.getElementById("menu-player-level");
     const slotsDiv = document.getElementById("digimon-slots");
@@ -90,17 +92,20 @@ function updateMenu() {
     menuPlayerName.textContent = activeDigimon ? activeDigimon.name : "None";
     menuPlayerLevel.textContent = activeDigimon ? activeDigimon.level : 0;
     slotsDiv.innerHTML = "";
-    state.digimonSlots.forEach((digimon, index) => {
+    for (let index = 0; index < state.digimonSlots.length; index++) {
+        const digimon = state.digimonSlots[index];
         const slotDiv = document.createElement("div");
         slotDiv.className = `slot ${index === state.activeDigimonIndex ? 'active' : ''}`;
         if (digimon) {
+            const digimonData = await fetchDigimon(digimon.name);
             const img = document.createElement("img");
-            img.src = digimon.sprite;
+            img.src = digimonData?.sprite || digimon.sprite || "https://via.placeholder.com/60?text=No+Image";
             img.alt = digimon.name;
             img.style.width = "60px";
             img.style.height = "60px";
             img.style.cursor = "pointer";
             img.title = "Click to view Digimon info";
+            img.onerror = () => { img.src = "https://via.placeholder.com/60?text=No+Image"; };
             img.onclick = () => showDigimonInfo(index);
 
             const nameP = document.createElement("p");
@@ -150,7 +155,7 @@ function updateMenu() {
             slotDiv.appendChild(buyBtn);
         }
         slotsDiv.appendChild(slotDiv);
-    });
+    }
 }
 
 function updateShop() {
@@ -162,7 +167,7 @@ function updateShop() {
     }
 }
 
-function updateUI() {
+async function updateUI() {
     const bitAmount = document.getElementById("bit-amount");
     const jogressShards = document.getElementById("jogress-shards");
     const shopBitAmount = document.getElementById("shop-bit-amount");
@@ -196,8 +201,12 @@ function updateUI() {
 
     const player = state.digimonSlots[state.activeDigimonIndex];
     if (player) {
+        const playerData = await fetchDigimon(player.name);
         if (playerName) playerName.textContent = player.name;
-        if (playerSprite) playerSprite.src = player.sprite;
+        if (playerSprite) {
+            playerSprite.src = playerData?.sprite || player.sprite || "https://via.placeholder.com/60?text=No+Image";
+            playerSprite.onerror = () => { playerSprite.src = "https://via.placeholder.com/60?text=No+Image"; };
+        }
         if (playerLevel) playerLevel.textContent = player.level;
         const equipHpBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.baseStats.hp || 0), 0) +
             Math.floor(player.maxHp * state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'maxHp')?.value || 0), 0) / 100);
@@ -243,7 +252,10 @@ function updateUI() {
 
     if (state.opponent) {
         if (opponentName) opponentName.textContent = state.opponent.name;
-        if (opponentSprite) opponentSprite.src = state.opponent.sprite;
+        if (opponentSprite) {
+            opponentSprite.src = state.opponent.sprite;
+            opponentSprite.onerror = () => { opponentSprite.src = "https://via.placeholder.com/60?text=No+Image"; };
+        }
         if (opponentLevel) opponentLevel.textContent = state.opponent.level;
         if (opponentHp) opponentHp.textContent = state.opponent.hp;
         if (opponentMaxHp) opponentMaxHp.textContent = state.opponent.maxHp;
@@ -261,7 +273,7 @@ function updateUI() {
         attackButton.disabled = state.isAttackDisabled || !state.battleActive || !state.opponent;
     }
     if (healToggle) healToggle.checked = state.healOnVictory;
-    updateMenu();
+    await updateMenu();
 }
 
 function showEquipMenu(slotIndex) {
@@ -443,7 +455,7 @@ function resetGame() {
         if (typeof hatchEgg === 'function') {
             hatchEgg(0);
             state.bit = 1000; // Give initial BIT for gameplay
-            logMessage("Welcome to Digimon RPG! A default Agumon has been hatched.");
+            logMessage("Welcome to Digimon RPG! A default Digimon has been hatched.");
             updateUI();
         } else {
             console.error("hatchEgg is not defined.");
@@ -499,7 +511,7 @@ function toggleJogressMenu() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log("Starting game initialization...");
     window.state = window.state || {};
     if (typeof resetState === 'function') {
@@ -512,11 +524,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize default Digimon if none exist
     if (!state.digimonSlots.some(slot => slot !== null)) {
-        console.log("No Digimon in slots, hatching default Agumon...");
+        console.log("No Digimon in slots, hatching default Digimon...");
         if (typeof hatchEgg === 'function') {
-            hatchEgg(0);
+            await hatchEgg(0);
             state.bit = 1000; // Give initial BIT for gameplay
-            logMessage("Welcome to Digimon RPG! A default Agumon has been hatched.");
+            logMessage("Welcome to Digimon RPG! A default Digimon has been hatched.");
         } else {
             console.error("hatchEgg is not defined.");
             logMessage("Failed to initialize game: hatchEgg not available.");
@@ -529,7 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (element) element.style.display = screen === "menu-screen" ? "block" : "none";
     });
 
-    updateUI();
+    await updateUI();
     console.log("UI updated, game initialized");
 
     document.querySelectorAll('button').forEach(button => {

@@ -38,6 +38,13 @@ function equipFromInventory(inventoryIndex) {
     state.equipmentSlots[state.currentEquipSlot] = ring;
     state.ringInventory.splice(inventoryIndex, 1);
     logMessage(`Equipped ${ring.name} to slot ${state.currentEquipSlot + 1}!`);
+    const player = state.digimonSlots[state.activeDigimonIndex];
+    if (player) {
+        const equipHpBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.baseStats.hp || 0), 0) +
+            Math.floor(player.maxHp * state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'maxHp')?.value || 0), 0) / 100);
+        const totalMaxHp = player.maxHp + player.shopBonuses.hp + player.rebirthBonuses.hp + equipHpBonus;
+        player.hp = Math.min(player.hp, totalMaxHp);
+    }
     updateUI();
     saveProgress(true);
 }
@@ -52,6 +59,13 @@ function sellRing(slotIndex) {
     state.bit += bitValue;
     state.equipmentSlots[slotIndex] = null;
     logMessage(`Sold ${ring.name} for ${bitValue} BIT!`);
+    const player = state.digimonSlots[state.activeDigimonIndex];
+    if (player) {
+        const equipHpBonus = state.equipmentSlots.reduce((sum, ring) => sum + (ring?.baseStats.hp || 0), 0) +
+            Math.floor(player.maxHp * state.equipmentSlots.reduce((sum, ring) => sum + (ring?.effects.find(e => e.type === 'maxHp')?.value || 0), 0) / 100);
+        const totalMaxHp = player.maxHp + player.shopBonuses.hp + player.rebirthBonuses.hp + equipHpBonus;
+        player.hp = Math.min(player.hp, totalMaxHp);
+    }
     updateUI();
     saveProgress(true);
 }
