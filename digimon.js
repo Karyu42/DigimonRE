@@ -1,9 +1,30 @@
 async function hatchEgg(slotIndex) {
-    const rookies = await fetchDigimonByLevel("Rookie");
+    let rookies = [];
+    let page = 1;
+    const pageSize = 100;
+
+    // Fetch all Rookie Digimon across pages
+    while (true) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/digimon?level=Rookie&page=${page}&pageSize=${pageSize}`);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const data = await response.json();
+            if (!data.content || data.content.length === 0) break;
+            rookies = rookies.concat(data.content);
+            if (!data.pageable || data.pageable.nextPage === null) break;
+            page++;
+        } catch (error) {
+            logMessage("Failed to fetch Rookie Digimon. Using fallback.");
+            rookies = [{ name: "Agumon", baseStats: { hp: 100, attack: 20 }, images: [{ href: "https://digi-api.com/images/agumon.jpg" }], level: "Rookie" }];
+            break;
+        }
+    }
+
     if (rookies.length === 0) {
-        logMessage("Failed to fetch Rookie Digimon!");
+        logMessage("No Rookie Digimon available!");
         return;
     }
+
     const digimon = rookies[Math.floor(Math.random() * rookies.length)];
     const multiplier = getStatMultiplier("Rookie");
     const newDigimon = {
@@ -135,11 +156,31 @@ async function rebirthDigimon(slotIndex) {
         logMessage(`${digimon.name} must be at least level 15 to rebirth (current level: ${digimon.level})!`);
         return;
     }
-    const rookies = await fetchDigimonByLevel("Rookie");
+    let rookies = [];
+    let page = 1;
+    const pageSize = 100;
+
+    while (true) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/digimon?level=Rookie&page=${page}&pageSize=${pageSize}`);
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const data = await response.json();
+            if (!data.content || data.content.length === 0) break;
+            rookies = rookies.concat(data.content);
+            if (!data.pageable || data.pageable.nextPage === null) break;
+            page++;
+        } catch (error) {
+            logMessage("Failed to fetch Rookie Digimon. Using fallback.");
+            rookies = [{ name: "Agumon", baseStats: { hp: 100, attack: 20 }, images: [{ href: "https://digi-api.com/images/agumon.jpg" }], level: "Rookie" }];
+            break;
+        }
+    }
+
     if (rookies.length === 0) {
-        logMessage("Failed to fetch Rookie Digimon!");
+        logMessage("No Rookie Digimon available!");
         return;
     }
+
     const newDigimon = rookies[Math.floor(Math.random() * rookies.length)];
     const multiplier = getStatMultiplier("Rookie");
     const newAttackBonus = Math.floor((digimon.attack - digimon.shopBonuses.attack - digimon.rebirthBonuses.attack) * 0.05);
